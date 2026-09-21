@@ -138,7 +138,7 @@ function decodeB64(s) {
   } catch (_) { return ""; }
 }
 
-const BLOCK_KINDS = new Set(["memo", "pull", "timeline", "tabs", "collapse", "box", "section", "stat", "person", "movie"]);
+const BLOCK_KINDS = new Set(["memo", "pull", "timeline", "tabs", "collapse", "box", "section", "stat", "person", "movie", "bar", "pie", "editor", "correction", "update", "tldr", "factcheck"]);
 
 /** Apply fn only to text outside fenced code blocks, so examples stay literal.
     Closing fence must be at least as long as the opening fence (CommonMark). */
@@ -177,8 +177,16 @@ function preprocessComponents(md) {
     // text highlights: :hl[text] and color variants :hl-red[text] :hl-blue[text] :hl-green[text]
     chunk = chunk.replace(/:hl-(red|blue|green)\[([^\]]+)\]/g, (_, c, t) => `@@HL:${c}:${b64e(t)}@@`);
     chunk = chunk.replace(/:hl\[([^\]]+)\]/g, (_, t) => `@@HL::${b64e(t)}@@`);
-    // ||spoiler|| → placeholder (inline, non-greedy)
-    chunk = chunk.replace(/\|\|([\s\S]+?)\|\|/g, (_, t) => `@@SPOILER:${b64e(t)}@@`);
+    // ||spoiler|| → placeholder (inline, non-greedy); ||~text|| → blurred spoiler
+    chunk = chunk.replace(/\|\|([\s\S]+?)\|\|/g, (_, t) => {
+      let blur = false;
+      if (t.startsWith("~")) {
+        blur = true;
+        t = t.slice(1);
+        if (t.endsWith("~")) t = t.slice(0, -1); // tolerate ||~text~||
+      }
+      return `@@SPOILER:${blur ? "1" : "0"}:${b64e(t)}@@`;
+    });
     // ==redacted== → placeholder
     chunk = chunk.replace(/==([^=\n]+?)==/g, (_, t) => `@@REDACTED:${b64e(t)}@@`);
     // :::kind args ... :::  directive blocks (memo, pull, timeline, tabs, collapse, box, section, stat, person, movie)
@@ -290,6 +298,75 @@ function renderStat(args, body) {
   return `<div class="stat${kind ? " stat--" + kind : ""}" role="figure">` +
     `<div class="stat__number">${renderInline(num) || "&nbsp;"}</div>` +
     (label ? `<div class="stat__label">${renderInner(label)}</div>` : "") + `</div>`;
+}
+
+/** Chart data: one "Label — 40" / "Label: 40" per line. */
+function parseChartData(body) {
+  const rows = [];
+  for (const line of body.split("\n")) {
+    const t = line.trim();
+    if (!t) continue;
+    let m = t.match(/^(.*?)\s*[—–:]\s*(-?[\d.,]+)\s*%?\s*$/);
+    if (!m) m = t.match(/^(.*?)\s+(-?[\d.,]+)\s*%?\s*$/);
+    if (!m) continue;
+    const label = m[1].trim();
+    const value = parseFloat(m[2].replace(/,/g, ""));
+    if (!label || !isFinite(value)) continue;
+    rows.push({ label, value, raw: m[2].replace(/\.0+$/, "") });
+  }
+  return rows;
+}
+
+function renderBarChart(args, body) {
+  const rows = parseChartData(body);
+  if (!rows.length) return "";
+  const max = Math.max(...rows.map((r) => Math.abs(r.value)), 0) || 1;
+  const items = rows.map((r) => {
+    const pct = Math.max(0, (Math.abs(r.value) / max) * 100);
+    return `<div class="chart__row"><span class="chart__label">${renderInline(r.label)}</span>` +
+      `<span class="chart__track"><span class="chart__fill" style="width:${pct.toFixed(1)}%"></span></span>` +
+      `<span class="chart__value">${esc(r.raw)}</span></div>`;
+  }).join("");
+  return `<figure class="chart"><figcaption class="chart__title">${esc(args) || "DATA"}</figcaption><div class="chart__rows">${items}</div></figure>`;
+}
+
+const PIE_COLORS = ["--accent", "--danger", "--ink", "--hl-blue", "--hl-green", "--hl-red"];
+function renderPieChart(args, body) {
+  const rows = parseChartData(body);
+  const total = rows.reduce((s, r) => s + Math.max(0, r.value), 0);
+  if (!rows.length || total <= 0) return "";
+  let acc = 0;
+  const stops = rows.map((r, i) => {
+    const start = (acc / total) * 100;
+    acc += Math.max(0, r.value);
+    const end = (acc / total) * 100;
+    return `var(${PIE_COLORS[i % PIE_COLORS.length]}) ${start.toFixed(2)}% ${end.toFixed(2)}%`;
+  });
+  const legend = rows.map((r, i) =>
+    `<li><span class="pie__sw" style="background:var(${PIE_COLORS[i % PIE_COLORS.length]})"></span>` +
+    `<span class="pie__label">${renderInline(r.label)}</span><span class="pie__val">${esc(r.raw)}</span></li>`).join("");
+  return `<figure class="chart chart--pie"><figcaption class="chart__title">${esc(args) || "DATA"}</figcaption>` +
+    `<div class="pie__wrap"><div class="pie" style="background:conic-gradient(${stops.join(",")})" role="img" aria-label="Pie chart: ${esc(rows.map((r) => `${r.label} ${r.raw}`).join(", "))}"></div>` +
+    `<ul class="pie__legend">${legend}</ul></div></figure>`;
+}
+
+/** Editorial notices: editor's note, correction, update, TL;DR. */
+const NOTICE_KICKERS = { editor: "EDITOR'S NOTE", correction: "CORRECTION", update: "UPDATE", tldr: "TL;DR" };
+function renderNotice(kind, args, body) {
+  const date = esc(args.trim());
+  return `<aside class="notice notice--${kind}"><div class="notice__kicker">${NOTICE_KICKERS[kind]}` +
+    (date ? `<span class="notice__date">${date}</span>` : "") +
+    `</div><div class="notice__body">${renderInner(body)}</div></aside>`;
+}
+
+/** Fact check with verdict badge: TRUE / FALSE / MIXED / UNVERIFIED. */
+const VERDICTS = { true: "✓ TRUE", false: "✕ FALSE", mixed: "◐ MIXED" };
+function renderFactcheck(args, body) {
+  const key = VERDICTS[args.trim().toLowerCase()] ? args.trim().toLowerCase() : "unverified";
+  const label = VERDICTS[key] || "? UNVERIFIED";
+  return `<aside class="factcheck factcheck--${key}"><div class="factcheck__badge" role="note">` +
+    `<span class="factcheck__dot" aria-hidden="true"></span>${label}</div>` +
+    `<div class="factcheck__body">${renderInner(body)}</div></aside>`;
 }
 
 function renderEmbed(kind, args) {
@@ -449,8 +526,8 @@ function postprocessHTML(html, ctx) {
   html = html.replace(/@@FNREF:([^:]+):(\d+)@@/g, (_, id, n) =>
     `<a class="footnote-ref" id="fnref-${esc(id)}" href="#fn-${esc(id)}" aria-label="Footnote ${n}">[${n}]</a>`);
   // spoilers — inner content gets a full markdown render so bold, links, highlights work inside
-  html = html.replace(/@@SPOILER:([A-Za-z0-9+/=]+)@@/g, (_, b) =>
-    `<span class="spoiler" tabindex="0" role="button" aria-label="Spoiler, activate to reveal">${renderInner(decodeB64(b))}</span>`);
+  html = html.replace(/@@SPOILER:([01]):([A-Za-z0-9+/=]+)@@/g, (_, f, b) =>
+    `<span class="spoiler${f === "1" ? " spoiler--blur" : ""}" tabindex="0" role="button" aria-label="Spoiler, activate to reveal">${renderInner(decodeB64(b))}</span>`);
   // redactions
   html = html.replace(/@@REDACTED:([A-Za-z0-9+/=]+)@@/g, (_, b) =>
     `<span class="redacted" aria-label="Redacted">${esc(decodeB64(b))}</span>`);
@@ -483,6 +560,10 @@ function postprocessHTML(html, ctx) {
     if (kind === "collapse") return `<details class="collapse"><summary>${esc(args) || "DETAILS"}</summary><div class="collapse__body">${renderInner(body)}</div></details>`;
     if (kind === "box") return renderBox(args, body);
     if (kind === "stat") return renderStat(args, body);
+    if (kind === "bar") return renderBarChart(args, body);
+    if (kind === "pie") return renderPieChart(args, body);
+    if (kind === "editor" || kind === "correction" || kind === "update" || kind === "tldr") return renderNotice(kind, args, body);
+    if (kind === "factcheck") return renderFactcheck(args, body);
     if (kind === "person" || kind === "movie") return renderIdCard(kind, args, body);
     if (kind === "section") return `<section class="dsection"><div class="dsection__title">${esc(args) || "SECTION"}</div><div class="dsection__body">${renderInner(body)}</div></section>`;
     return "";

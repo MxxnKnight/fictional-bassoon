@@ -544,6 +544,53 @@ The `{% img %}` directive gives you caption alignment: `center`, `left`, or `rig
 
 There is a secret route on this board: `#/press`. It isn't linked anywhere. Behind a code (default `ink`, change `PRESS_CODE` in `app.js`) sits a private studio — write Markdown, hit **PREVIEW** to see the file rendered with every component, then **COPY HTML** or **COPY MARKDOWN** to take the code with you.
 
+## Charts
+
+One `Label — value` (or `Label: value`) per line. Bars scale to the largest value; pie slices scale to the total.
+
+:::bar Traffic by source
+Google — 60
+Direct: 25
+Social — 15
+:::
+
+:::pie Budget split
+Rent — 40
+Food — 30
+Fun — 20
+Savings — 10
+:::
+
+## Editorial notices
+
+:::tldr
+Three sources confirmed the outage. The grid held by 4 AM.
+:::
+
+:::editor
+We held this story for 48 hours while we verified the documents.
+:::
+
+:::correction 2026-09-20
+An earlier version misstated the outage duration as 30 hours. It was 43.
+:::
+
+:::update
+12:30 PM — The utility has confirmed the timeline in this story.
+:::
+
+## Fact check
+
+Verdict goes on the first line: `TRUE`, `FALSE`, or `MIXED`. Anything else renders as UNVERIFIED.
+
+:::factcheck FALSE
+The claim that the grid failed twice is unsupported by the logs.
+:::
+
+## Spoilers, two ways
+
+`||the butler did it||` is the classic black bar. Add a tilde — `||~the gardener helped||` — and the text renders blurred instead. Both reveal on tap or click.
+
 ## Cheat sheet
 
 | You want | You write |
@@ -574,3 +621,11 @@ There is a secret route on this board: `#/press`. It isn't linked anywhere. Behi
 | Person / movie | `:::person [round]` / `:::movie` … `:::` |
 | Logo | `{% logo "wire.png" "WIRE" 48 %}` |
 | Aligned image | `{% img "photo.jpg" "Caption" center %}` |
+| Bar chart | `:::bar Title` … `Label — 40` … `:::` |
+| Pie chart | `:::pie Title` … `Label — 40` … `:::` |
+| Editor's note | `:::editor` … `:::` |
+| Correction | `:::correction 2026-09-20` … `:::` |
+| Update | `:::update` … `:::` |
+| TL;DR | `:::tldr` … `:::` |
+| Fact check | `:::factcheck TRUE\|FALSE\|MIXED` … `:::` |
+| Blur spoiler | `||~text||` (drop the tilde for the black bar) |
