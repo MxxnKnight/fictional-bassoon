@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>DOSSIER — A Brutalist News System</title>
+  <meta name="description" content="The Dossier. A brutalist news system. No trackers. No ads. Just files.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <!-- ══════════ TICKER ══════════ -->
+  <div class="ticker" aria-hidden="true">
+    <div class="ticker__track" id="tickerTrack">
+      <span>LIVE FEED&nbsp;&nbsp;//&nbsp;&nbsp;NEW FILE DROP&nbsp;&nbsp;//&nbsp;&nbsp;VERIFIED SOURCES ONLY&nbsp;&nbsp;//&nbsp;&nbsp;DEAD DROP LOCATION: KOCHI&nbsp;&nbsp;//&nbsp;&nbsp;</span>
+    </div>
+  </div>
+
+  <!-- ══════════ HEADER ══════════ -->
+  <header class="masthead">
+    <a class="brand" href="#/board" aria-label="Dossier home">
+      <span class="brand__word">DOSSIER</span>
+      <span class="brand__stamp">FILE<br>STAMP</span>
+      <span class="brand__no">/ NO_023</span>
+    </a>
+    <div class="masthead__right">
+      <span class="masthead__meta" id="fileCount"></span>
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme" title="Switch theme">
+        <span class="theme-btn__icon" id="themeIcon">☀</span>
+        <span class="theme-btn__label" id="themeLabel">LIGHT</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ══════════ TABS ══════════ -->
+  <nav class="tabs" aria-label="Sections">
+    <a class="tab is-active" href="#/board" data-tab="board"><span class="tab__dot"></span>BOARD VIEW</a>
+    <a class="tab" href="#/publish" data-tab="publish"><span class="tab__dot"></span>EDITOR / PUBLISH</a>
+    <span class="tabs__meta">EDITORIAL PAPER // FILE NO_023</span>
+  </nav>
+
+  <!-- ══════════ VIEWS ══════════ -->
+  <main id="app">
+    <!-- BOARD -->
+    <section id="view-board" class="view">
+      <div class="board-head">
+        <div>
+          <h1 class="board-title">INVESTIGATION<br>BOARD</h1>
+          <p class="board-sub"><span id="activeCount"></span> ACTIVE FILES &nbsp;•&nbsp; LAST UPDATE: <span id="lastUpdate"></span> &nbsp;<span class="chip chip--verified">VERIFIED</span></p>
+        </div>
+        <p class="board-note">THIS BOARD IS A WORKING DOCUMENT. FILES ARE CONNECTED WITH RED STRING (METAPHORICALLY). BRUTALISM MODE REMOVES ALL SOFTNESS.</p>
+      </div>
+      <div class="searchrow">
+        <input class="search" id="searchInput" type="search" placeholder="SEARCH FILES, TAGS, SOURCES…" aria-label="Search files">
+      </div>
+      <div class="grid" id="cardGrid"></div>
+    </section>
+
+    <!-- DOSSIER (article) -->
+    <section id="view-file" class="view" hidden>
+      <div class="dossier-topbar">
+        <a class="back-btn" href="#/board">← BOARD</a>
+        <span class="dossier-topbar__file" id="dossierFileNo"></span>
+      </div>
+      <article class="dossier" id="dossierArticle"></article>
+    </section>
+
+    <!-- PUBLISH -->
+    <section id="view-publish" class="view" hidden>
+      <div class="publish">
+        <h1 class="board-title">HOW TO<br>PUBLISH</h1>
+        <p class="publish__lede">Publishing is a file drop. No CMS. No login. You push a Markdown file, the board picks it up.</p>
+        <ol class="publish__steps">
+          <li><strong>Write</strong> your piece as <code>.md</code> in the <code>/posts</code> folder of your GitHub repo.</li>
+          <li><strong>Stamp it</strong> — start the file with frontmatter: title, file number, type, date, tags, status.</li>
+          <li><strong>List it</strong> — add the filename to <code>/posts/manifest.json</code>.</li>
+          <li><strong>Push.</strong> The board fetches from <code>raw.githubusercontent.com</code> on load. Done.</li>
+        </ol>
+        <h2 class="publish__h2">Field components</h2>
+        <p class="publish__lede">The markup supports everything a dossier needs:</p>
+        <ul class="publish__list">
+          <li><code>||spoiler||</code> — blurred text, tap to reveal</li>
+          <li><code>![alt](img.jpg "spoiler: reason")</code> — sealed image, tap to unseal</li>
+          <li><code>==redacted==</code> — black-bar redaction</li>
+          <li><code>[[023-02]]</code> — internal link to another file</li>
+          <li><code>[^1]</code> footnotes, <code>:::memo</code> callout boxes, pull quotes, tables, anchors on every heading</li>
+        </ul>
+        <p class="publish__lede">Point the board at your repo by setting <code>REPO</code> at the top of <code>assets/js/app.js</code>. Leave it empty to serve <code>/posts</code> locally.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>THE DOSSIER // A BRUTALIST NEWS SYSTEM // NO TRACKERS // NO ADS // JUST FILES</span>
+    <span id="buildTag">BUILD: v023.4</span>
+  </footer>
+
+  <script src="assets/js/marked.min.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
