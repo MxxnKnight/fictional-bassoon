@@ -51,7 +51,7 @@ function applyTheme(name, save = true) {
   $("#themeLabel").textContent = THEME_META[name].label;
   $("#themeBtn").setAttribute("aria-label", `Theme: ${name}. Activate to switch.`);
   const tag = $("#buildTag");
-  if (tag) tag.textContent = `BUILD: v023.5 // ${name.toUpperCase()} ACTIVE`;
+  if (tag) tag.textContent = `BUILD: v023.6 // ${name.toUpperCase()} ACTIVE`;
   if (save) { try { localStorage.setItem("dossier-theme", name); } catch (_) {} }
 }
 /** v1 theme-switch glitch: shake the page + white flash. */
@@ -425,9 +425,19 @@ function buildRenderer() {
   const renderer = new marked.Renderer();
   const headings = [];
 
+  // inline placeholders (badges, highlights, tooltips…) are still raw at
+  // heading-render time — decode them for clean TOC text and anchor ids.
+  const headingPlain = (s) => s
+    .replace(/@@HL:([A-Za-z0-9+/=]+)@@/g, (_, b) => decodeB64(b))
+    .replace(/@@BADGE:(?:badge(?:-red|-ghost)?|tag):([A-Za-z0-9+/=]+)@@/g, (_, b) => decodeB64(b))
+    .replace(/@@TIP:([A-Za-z0-9+/=]+):[A-Za-z0-9+/=]+@@/g, (_, b) => decodeB64(b))
+    .replace(/@@(?:SPOILER|REDACTED):([A-Za-z0-9+/=]+)@@/g, (_, b) => decodeB64(b))
+    .replace(/@@[A-Z]+(?::[^@]*)?@@/g, "");
+
   renderer.heading = (text, level) => {
-    const id = "h-" + slugify(text.replace(/<[^>]+>/g, ""));
-    if (level <= 3) headings.push({ level, text: text.replace(/<[^>]+>/g, ""), id });
+    const plain = headingPlain(text.replace(/<[^>]+>/g, ""));
+    const id = "h-" + slugify(plain);
+    if (level <= 3) headings.push({ level, text: plain, id });
     return `<h${level} id="${id}">${text}<a class="h-anchor" href="#${id}" aria-label="Link to this section">#</a></h${level}>`;
   };
 
@@ -622,6 +632,15 @@ function bindArticleInteractions(root) {
   });
   // custom video players
   root.querySelectorAll("[data-vplayer]").forEach(setupPlayer);
+  // syntax colors for code boxes (highlight.js, if loaded)
+  if (window.hljs) {
+    root.querySelectorAll(".codebox pre code[class^='language-']").forEach((el) => {
+      const m = el.className.match(/language-([\w-]+)/);
+      if (!m || m[1].toLowerCase() === "text") return;
+      if (!window.hljs.getLanguage(m[1])) return;
+      try { window.hljs.highlightElement(el); } catch (_) {}
+    });
+  }
 }
 
 /* ───────── router ───────── */

@@ -51,6 +51,18 @@ Add `filter:` to the image title for CSS filters, then `|` and a caption.
 
 Any CSS filter works: `blur(2px)`, `invert(1)`, `saturate(2)`, chained combos.
 
+## Sealed images
+
+Put `spoiler:` first in the title and the image stays blurred until tapped.
+
+```text
+![Raid photograph](https://picsum.photos/seed/dossier9/880/460 "spoiler: Graphic content — tap to unseal")
+```
+
+**Live:**
+
+![Raid photograph](https://picsum.photos/seed/dossier9/880/460 "spoiler: Graphic content — tap to unseal")
+
 ## Video player
 
 Themed player with play, seek, time, mute and fullscreen. `src` can be a file in `/posts` or a URL.
@@ -91,7 +103,7 @@ And a generic framed embed for anything else:
 
 ## Code
 
-Inline code looks like `this`. Fenced blocks become a code box with the language stamped on top and a **copy button**.
+Inline code looks like `this`. Fenced blocks become a code box with the language stamped on top, a **copy button**, and **syntax colors** that follow the active theme.
 
 ````text
 ```js
@@ -408,6 +420,7 @@ Still here, still working: ||spoilers||, ==redactions==, [[023-02|internal links
 |---|---|
 | Timeline | `:::timeline` … `- time — event` … `:::` |
 | Filtered image | `![alt](src "filter: sepia(1) \| cap")` |
+| Sealed image | `![alt](src "spoiler: reason — tap to unseal")` |
 | Video player | `{% video src="…" caption="…" %}` |
 | Audio | `{% audio src="…" %}` |
 | YouTube | `{% youtube VIDEO_ID %}` |

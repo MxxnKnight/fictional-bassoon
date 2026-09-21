@@ -147,10 +147,12 @@
 
 /* ── text highlight (marker) ── */
 .hl {
-  background: linear-gradient(transparent 52%, var(--accent) 52%, var(--accent) 96%, transparent 96%);
+  background: linear-gradient(transparent 42%, var(--accent) 42%, var(--accent) 97%, transparent 97%);
   padding: 0 2px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
-[data-theme="brutalism"] .hl { background: #e5ff00; color: #000; padding: 0 4px; }
+[data-theme="brutalism"] .hl { background: #e5ff00; color: #000; padding: 1px 5px; }
 
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 
@@ -474,8 +476,9 @@ a { color: inherit; }
    ═══════════════════════════════════════════════ */
 
 /* ── timeline ── */
-.timeline { list-style: none; padding: 0; margin: 1.6em 0; position: relative; }
-.timeline::before { content: ""; position: absolute; left: 7px; top: 8px; bottom: 8px; width: 2px; background: var(--line-strong); }
+/* note: .dossier__body ol has higher specificity than .timeline, so re-assert padding */
+.timeline, .dossier__body .timeline { list-style: none; padding: 0; padding-left: 0; margin: 1.6em 0; position: relative; }
+.timeline::before { content: ""; position: absolute; left: 6.5px; top: 6px; bottom: 6px; width: 3px; background: var(--line-strong); }
 .timeline li { position: relative; padding: 0 0 1.4em 34px; }
 .timeline li:last-child { padding-bottom: 2px; }
 .timeline li::before { content: ""; position: absolute; left: 0; top: 5px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--paper); }
@@ -514,6 +517,24 @@ a { color: inherit; }
 .codebox__copy { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: .1em; background: transparent; color: inherit; border: 1px solid currentColor; border-radius: var(--radius); padding: 6px 12px; min-height: 32px; cursor: pointer; }
 .codebox__copy:hover { background: rgb(128 128 128 / .25); }
 .codebox pre { border: 0 !important; border-radius: 0 !important; margin: 0 !important; }
+
+/* ── syntax tokens (highlight.js) — theme aware ── */
+.codebox .hljs-keyword, .codebox .hljs-selector-tag, .codebox .hljs-built_in { color: #a31515; }
+.codebox .hljs-string, .codebox .hljs-regexp, .codebox .hljs-meta .hljs-string { color: #2a7a2a; }
+.codebox .hljs-comment, .codebox .hljs-quote { color: var(--ink-faint); font-style: italic; }
+.codebox .hljs-number, .codebox .hljs-literal { color: #8a5a00; }
+.codebox .hljs-title, .codebox .hljs-title.function_, .codebox .hljs-section { color: #1a4a9a; }
+.codebox .hljs-attr, .codebox .hljs-attribute, .codebox .hljs-variable, .codebox .hljs-template-variable { color: #6a1b9a; }
+.codebox .hljs-type, .codebox .hljs-class .hljs-title { color: #006d6d; }
+.codebox .hljs-operator, .codebox .hljs-punctuation, .codebox .hljs-subst { color: var(--ink-soft); }
+.codebox .hljs-emphasis { font-style: italic; }
+.codebox .hljs-strong { font-weight: 700; }
+[data-theme="dark"] .codebox .hljs-keyword, [data-theme="dark"] .codebox .hljs-selector-tag, [data-theme="dark"] .codebox .hljs-built_in { color: #ff7b72; }
+[data-theme="dark"] .codebox .hljs-string, [data-theme="dark"] .codebox .hljs-regexp, [data-theme="dark"] .codebox .hljs-meta .hljs-string { color: #7ee787; }
+[data-theme="dark"] .codebox .hljs-number, [data-theme="dark"] .codebox .hljs-literal { color: #e8a013; }
+[data-theme="dark"] .codebox .hljs-title, [data-theme="dark"] .codebox .hljs-title.function_, [data-theme="dark"] .codebox .hljs-section { color: #79c0ff; }
+[data-theme="dark"] .codebox .hljs-attr, [data-theme="dark"] .codebox .hljs-attribute, [data-theme="dark"] .codebox .hljs-variable, [data-theme="dark"] .codebox .hljs-template-variable { color: #d2a8ff; }
+[data-theme="dark"] .codebox .hljs-type, [data-theme="dark"] .codebox .hljs-class .hljs-title { color: #56d4dd; }
 
 /* ── dossier box ── */
 .dbox { border: 2px solid var(--line-strong); border-radius: var(--radius); margin: 1.6em 0; background: var(--paper-2); box-shadow: var(--shadow); }
