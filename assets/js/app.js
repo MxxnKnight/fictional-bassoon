@@ -51,7 +51,7 @@ function applyTheme(name, save = true) {
   $("#themeLabel").textContent = THEME_META[name].label;
   $("#themeBtn").setAttribute("aria-label", `Theme: ${name}. Activate to switch.`);
   const tag = $("#buildTag");
-  if (tag) tag.textContent = `BUILD: v023.6 // ${name.toUpperCase()} ACTIVE`;
+  if (tag) tag.textContent = `BUILD: v023.7 // ${name.toUpperCase()} ACTIVE`;
   if (save) { try { localStorage.setItem("dossier-theme", name); } catch (_) {} }
 }
 /** v1 theme-switch glitch: shake the page + white flash. */
@@ -136,7 +136,7 @@ function decodeB64(s) {
   } catch (_) { return ""; }
 }
 
-const BLOCK_KINDS = new Set(["memo", "pull", "timeline", "tabs", "collapse", "box", "section"]);
+const BLOCK_KINDS = new Set(["memo", "pull", "timeline", "tabs", "collapse", "box", "section", "stat"]);
 
 /** Apply fn only to text outside fenced code blocks, so examples stay literal.
     Closing fence must be at least as long as the opening fence (CommonMark). */
@@ -178,7 +178,7 @@ function preprocessComponents(md) {
     chunk = chunk.replace(/\|\|([\s\S]+?)\|\|/g, (_, t) => `@@SPOILER:${b64e(t)}@@`);
     // ==redacted== → placeholder
     chunk = chunk.replace(/==([^=\n]+?)==/g, (_, t) => `@@REDACTED:${b64e(t)}@@`);
-    // :::kind args ... :::  directive blocks (memo, pull, timeline, tabs, collapse, box, section)
+    // :::kind args ... :::  directive blocks (memo, pull, timeline, tabs, collapse, box, section, stat)
     chunk = chunk.replace(/^:::(\w+)([^\n]*)\n([\s\S]*?)^:::$/gm, (_, kind, args, body) => {
       if (!BLOCK_KINDS.has(kind.toLowerCase())) return _;
       return `\n@@BLOCK:${kind.toLowerCase()}:${b64e(args.trim())}:${b64e(body)}@@\n`;
@@ -261,6 +261,26 @@ function renderBox(args, body) {
   return `<div class="dbox${kind ? " dbox--" + kind : ""}">` +
     (title ? `<div class="dbox__title">${esc(title)}</div>` : "") +
     `<div class="dbox__body">${renderInner(body)}</div></div>`;
+}
+
+/** Render a markdown fragment inline (no wrapping <p>) — for stat numbers, etc. */
+function renderInline(md) {
+  if (!md || !md.trim()) return "";
+  const { renderer } = buildRenderer();
+  marked.setOptions({ renderer, breaks: false, gfm: true });
+  return postprocessHTML(marked.parseInline(preprocessComponents(md)), { footnotes: { defs: new Map(), order: [] } });
+}
+
+function renderStat(args, body) {
+  const kind = /^(red|ghost)$/.test(args.trim()) ? args.trim() : "";
+  const lines = body.split("\n");
+  let i = 0;
+  while (i < lines.length && !lines[i].trim()) i++;
+  const num = (lines[i] || "").trim();
+  const label = lines.slice(i + 1).join("\n").trim();
+  return `<div class="stat${kind ? " stat--" + kind : ""}" role="figure">` +
+    `<div class="stat__number">${renderInline(num) || "&nbsp;"}</div>` +
+    (label ? `<div class="stat__label">${renderInner(label)}</div>` : "") + `</div>`;
 }
 
 function renderEmbed(kind, args) {
@@ -387,6 +407,7 @@ function postprocessHTML(html, ctx) {
     if (kind === "tabs") return renderTabs(body);
     if (kind === "collapse") return `<details class="collapse"><summary>${esc(args) || "DETAILS"}</summary><div class="collapse__body">${renderInner(body)}</div></details>`;
     if (kind === "box") return renderBox(args, body);
+    if (kind === "stat") return renderStat(args, body);
     if (kind === "section") return `<section class="dsection"><div class="dsection__title">${esc(args) || "SECTION"}</div><div class="dsection__body">${renderInner(body)}</div></section>`;
     return "";
   });

@@ -166,6 +166,36 @@ Names in this section are unverified. Hold for legal.
 A quiet box for asides. No shadow, no noise.
 :::
 
+## Stat callout
+
+A big-number callout for the figures that matter. First line is the number, the rest is the label. Optional kinds: `red`, `ghost`.
+
+```text
+:::stat
+₹4.2 cr
+Funds traced to shell accounts
+:::
+
+:::stat red
+17
+Arrests made before dawn
+:::
+```
+
+**Live:**
+
+:::stat
+₹4.2 cr
+Funds traced to shell accounts
+:::
+
+:::stat red
+17
+Arrests made before dawn
+:::
+
+Inline markup works in the number too: `:::stat` then `:hl[04:17]` on the first line.
+
 ## Tables
 
 Plain markdown tables scroll horizontally on phones — no squished columns.
@@ -427,6 +457,7 @@ Still here, still working: ||spoilers||, ==redactions==, [[023-02|internal links
 | Iframe | `{% embed URL %}` |
 | Code box + copy | fenced ` ```lang ` block |
 | Box | `:::box [red\|ghost] Title` … `:::` |
+| Stat callout | `:::stat [red\|ghost]` … number … label … `:::` |
 | Tabbed tables | `:::tabs` … `## Tab` … `:::` |
 | Checklist | `- [ ]` / `- [x]` |
 | Section | `:::section Title` … `:::` |

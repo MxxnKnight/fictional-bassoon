@@ -546,6 +546,16 @@ a { color: inherit; }
 .dbox--ghost { background: transparent; box-shadow: none; }
 .dbox--ghost .dbox__title { background: transparent; color: var(--ink); }
 
+/* ── stat callout ── */
+.stat { border: 2px solid var(--line-strong); border-left: 10px solid var(--accent); border-radius: var(--radius); margin: 1.6em 0; padding: 18px 20px; background: var(--paper-2); box-shadow: var(--shadow); }
+.stat__number { font-family: var(--mono); font-weight: 800; font-size: clamp(2.4rem, 8vw, 4rem); line-height: 1; letter-spacing: -0.02em; }
+.stat__label { margin-top: 10px; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); }
+.stat__label > p { margin: 0; }
+.stat__label > *:last-child { margin-bottom: 0; }
+.stat--red { border-color: var(--danger); border-left-color: var(--danger); }
+.stat--red .stat__number { color: var(--danger); }
+.stat--ghost { background: transparent; box-shadow: none; border-style: dashed; }
+
 /* ── tabbed content ── */
 .ctabs { margin: 1.6em 0; border: var(--border) var(--line-strong); border-radius: var(--radius); overflow: hidden; }
 .ctabs__bar { display: flex; overflow-x: auto; background: var(--paper-2); border-bottom: var(--border) var(--line-strong); -webkit-overflow-scrolling: touch; }
