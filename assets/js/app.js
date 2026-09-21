@@ -636,7 +636,7 @@ function renderCodebox(langToken, code) {
   const floatCopy = bare ? `<button class="codebox__iconbtn codebox__copy--float" type="button" data-copy aria-label="Copy code">${SVG_COPY}</button>` : "";
   const cls = "codebox" + (bare ? " codebox--bare" : "") + (mono ? " codebox--mono" : "");
   const tab = bare ? ` tabindex="0"` : "";
-  return `<div class="${cls}" data-lang="${esc(lang)}"${tab}>${bar}${floatCopy}<div class="codebox__body"><pre><code class="language-${esc(lang)}">${codeHtml}</code></pre></div>`;
+  return `<div class="${cls}" data-lang="${esc(lang)}"${tab}>${bar}${floatCopy}<div class="codebox__body"><pre><code class="language-${esc(lang)}">${codeHtml}</code></pre></div></div>`;
 }
 
 /** First fenced block inside a markdown fragment. */
