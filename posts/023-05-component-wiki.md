@@ -484,21 +484,15 @@ The film scores :stars[3] from the desk.
 
 The film scores :stars[3] from the desk.
 
-## Person & movie cards
+## Person cards
 
-An ID card: the first image becomes the portrait, the rest is info. Add `round` for a circular portrait. `:::movie` uses a taller poster frame.
+An ID card: the first image becomes the portrait, the rest is info. Add `round` for a circular portrait.
 
 ```text
 :::person round
 ![Ava Cross](ava.jpg)
 **Ava Cross** — Field agent
 Cleared for level 4. Speaks Malayalam, Hindi, English.
-:::
-
-:::movie
-![Poster](poster.jpg)
-**Drishyam** — 2013
-Thriller · :stars[4.5]
 :::
 ```
 
@@ -510,11 +504,44 @@ Thriller · :stars[4.5]
 Cleared for level 4. Speaks Malayalam, Hindi, English.
 :::
 
+## Movie infobox
+
+Wikipedia/IMDb style. First image is the poster, the first text line is the title, `Key: Value` lines become fact rows, and anything else becomes the synopsis.
+
+```text
 :::movie
 ![Poster](poster.jpg)
-**Drishyam** — 2013
-Thriller · :stars[4.5]
+Drishyam
+Director: Jeethu Joseph
+Year: 2013
+Box office: $677747
+Rating: :stars[4.5]
+A gripping thriller about a man who will do anything to protect his family.
 :::
+```
+
+**Live:**
+
+:::movie
+![Poster](poster.jpg)
+Drishyam
+Director: Jeethu Joseph
+Year: 2013
+Box office: $677747
+Rating: :stars[4.5]
+A gripping thriller about a man who will do anything to protect his family.
+:::
+
+## Diagrams
+
+Fence a block as `mermaid` and it renders as a diagram instead of code — flowcharts, sequence diagrams, class diagrams, and more. The library loads only when a diagram is on the page.
+
+```mermaid
+flowchart TD
+    A[Story breaks] --> B{Verified?}
+    B -->|Yes| C[Publish]
+    B -->|No| D[Hold for desk]
+```
 
 ## Inline logo
 
@@ -668,7 +695,9 @@ Lens | 800 g | No
 | Button | `[Label](button[:red\|:ghost]:url)` |
 | Download | `{% download "file.pdf" "Label" %}` |
 | Stars | `{% stars 4.5 %}` or `:stars[4.5]` |
-| Person / movie | `:::person [round]` / `:::movie` … `:::` |
+| Person card | `:::person [round]` … `:::` |
+| Movie infobox | `:::movie` — poster, title, `Key: Value` rows … `:::` |
+| Diagram | ` ```mermaid ` flowchart / sequence … ` ``` ` |
 | Logo | `{% logo "wire.png" "WIRE" 48 %}` |
 | Aligned image | `{% img "photo.jpg" "Caption" center %}` |
 | Bar chart | `:::bar Title` … `Label — 40` … `:::` |

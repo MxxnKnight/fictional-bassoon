@@ -463,6 +463,45 @@ function renderIdCard(kind, args, body) {
   return `<div class="id-card id-card--${kind}">${imgHTML}<div class="id-card__body">${renderInner(rest.trim())}</div></div>`;
 }
 
+/** :::movie — Wikipedia/IMDb-style infobox.
+    First image = poster. First text line = title.
+    "Key: Value" lines = fact rows. Anything else = synopsis. */
+function renderMovie(args, body) {
+  const m = body.match(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/);
+  let poster = "", rest = body;
+  if (m) {
+    let src = m[2];
+    if (!/^(https?:|data:|\/)/i.test(src)) src = POSTS_BASE + src;
+    poster = `<img class="movie__poster" src="${esc(src)}" alt="${esc(m[1])}" loading="lazy">`;
+    rest = body.replace(m[0], "");
+  }
+  const lines = rest.split("\n").map((l) => l.trim());
+  let i = 0;
+  while (i < lines.length && !lines[i]) i++;
+  const title = i < lines.length ? lines[i++] : "";
+  const facts = [], syn = [];
+  for (; i < lines.length; i++) {
+    if (!lines[i]) continue;
+    const fm = lines[i].match(/^([^:*\n]{1,40}):\s+(.+)$/);
+    if (fm) facts.push({ k: fm[1].trim(), v: fm[2].trim() });
+    else syn.push(lines[i]);
+  }
+  const kicker = esc(args.trim()) || "MOVIE FILE";
+  const factsHtml = facts.length
+    ? `<dl class="movie__facts">${facts.map((f) =>
+        `<div class="movie__fact"><dt>${esc(f.k)}</dt><dd>${renderInline(f.v)}</dd></div>`).join("")}</dl>`
+    : "";
+  const synHtml = syn.length ? `<div class="movie__syn">${renderInner(syn.join("\n\n"))}</div>` : "";
+  return `<aside class="movie"><div class="movie__kicker">${kicker}</div>` +
+    `<div class="movie__title">${renderInline(title) || "UNTITLED"}</div>` +
+    `<div class="movie__grid">${poster}<div class="movie__body">${factsHtml}${synHtml}</div></div></aside>`;
+}
+
+/** Mermaid diagram block: ```mermaid fences render as diagrams, not code. */
+function renderDiagram(code) {
+  return `<figure class="diagram"><pre class="mermaid">${code}</pre></figure>`;
+}
+
 /** Clipboard helper with fallback. */
 async function copyText(t) {
   try { await navigator.clipboard.writeText(t); return true; }
@@ -574,6 +613,7 @@ function renderCodebox(langToken, code) {
   const parts = String(langToken || "text").split("__");
   const lang = parts[0] || "text";
   const flags = new Set(parts.slice(1).map((f) => f.toLowerCase()));
+  if (lang === "mermaid") return renderDiagram(code); // diagrams, not code
   const isDiff = flags.has("diff") || lang === "diff" || lang === "patch";
   let color = flags.has("color") || isDiff || themeNow() === "brutalism";
   if (flags.has("mono")) color = false;
@@ -701,7 +741,8 @@ function postprocessHTML(html, ctx) {
     if (kind === "pie") return renderPieChart(args, body);
     if (kind === "editor" || kind === "correction" || kind === "update" || kind === "tldr") return renderNotice(kind, args, body);
     if (kind === "factcheck") return renderFactcheck(args, body);
-    if (kind === "person" || kind === "movie") return renderIdCard(kind, args, body);
+    if (kind === "person") return renderIdCard(kind, args, body);
+    if (kind === "movie") return renderMovie(args, body);
     if (kind === "section") return `<section class="dsection"><div class="dsection__title">${esc(args) || "SECTION"}</div><div class="dsection__body">${renderInner(body)}</div></section>`;
     return "";
   });
@@ -1044,6 +1085,38 @@ function bindArticleInteractions(root) {
   root.querySelectorAll(".codebox--bare").forEach((box) => {
     box.addEventListener("click", () => box.classList.add("is-open"));
   });
+  // mermaid diagrams: ```mermaid fences, rendered lazily
+  const diagrams = [...root.querySelectorAll("pre.mermaid")];
+  const paintDiagrams = () => {
+    if (!window.mermaid) return;
+    try {
+      const dark = themeNow() === "dark";
+      window.mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: dark ? "dark" : "neutral" });
+    } catch (_) {}
+    diagrams.forEach((el, i) => {
+      if (el.dataset.done) return;
+      el.dataset.done = "1";
+      const id = "mmd-" + Date.now().toString(36) + "-" + i;
+      try {
+        const r = window.mermaid.render(id, el.textContent);
+        if (r && r.then) r.then(({ svg }) => { el.innerHTML = svg; }).catch(() => { delete el.dataset.done; });
+        else if (typeof r === "string") el.innerHTML = r;
+      } catch (_) { delete el.dataset.done; }
+    });
+  };
+  if (diagrams.length) {
+    if (window.mermaid) paintDiagrams();
+    else if (!document.querySelector("script[data-mermaid]")) {
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js";
+      s.async = true; s.setAttribute("data-mermaid", "1");
+      s.onload = paintDiagrams;
+      document.head.appendChild(s);
+    } else {
+      const iv = setInterval(() => { if (window.mermaid) { clearInterval(iv); paintDiagrams(); } }, 400);
+      setTimeout(() => clearInterval(iv), 12000);
+    }
+  }
   // social embeds: X/Twitter + Reddit official widgets, loaded lazily
   const loadSocial = (selector, src, tag, onload) => {
     if (!root.querySelector(selector)) return;
