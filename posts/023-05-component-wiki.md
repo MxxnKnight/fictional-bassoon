@@ -310,6 +310,18 @@ and nobody has explained the other 60%.
 
 :badge[VERIFIED] :badge-red[LEAK] :badge-ghost[DRAFT] :tag[whistleblower]
 
+## Text highlights
+
+Marker-pen highlights with `:hl[text]`. Stays readable in every theme.
+
+```text
+The stamp reads :hl[KOCHI 04:17] but the ink says otherwise.
+```
+
+**Live:**
+
+The stamp reads :hl[KOCHI 04:17] but the ink says otherwise.
+
 ## Alert boxes
 
 Five flavors. Start a quote block with `[!KIND]`; an optional title can follow on the same line.
@@ -408,6 +420,7 @@ Still here, still working: ||spoilers||, ==redactions==, [[023-02|internal links
 | Collapse | `:::collapse Title` … `:::` |
 | Divider | `---` or `***` |
 | Badge / tag | `:badge[]` `:badge-red[]` `:badge-ghost[]` `:tag[]` |
+| Highlight | `:hl[text]` |
 | Alert | `> [!NOTE\|TIP\|IMPORTANT\|WARNING\|CAUTION]` |
 | Tooltip | `[text](tooltip: tip)` |
 | Key | `<kbd>Key</kbd>` |

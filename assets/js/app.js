@@ -51,8 +51,22 @@ function applyTheme(name, save = true) {
   $("#themeLabel").textContent = THEME_META[name].label;
   $("#themeBtn").setAttribute("aria-label", `Theme: ${name}. Activate to switch.`);
   const tag = $("#buildTag");
-  if (tag) tag.textContent = `BUILD: v023.4 // ${name.toUpperCase()} ACTIVE`;
+  if (tag) tag.textContent = `BUILD: v023.5 // ${name.toUpperCase()} ACTIVE`;
   if (save) { try { localStorage.setItem("dossier-theme", name); } catch (_) {} }
+}
+/** v1 theme-switch glitch: shake the page + white flash. */
+function glitchSwitch() {
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const app = document.getElementById("app");
+  if (app) {
+    app.classList.add("glitch-active");
+    setTimeout(() => app.classList.remove("glitch-active"), 400);
+  }
+  const flash = document.createElement("div");
+  flash.className = "theme-flash";
+  flash.setAttribute("aria-hidden", "true");
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 160);
 }
 function initTheme() {
   let t = null;
@@ -63,7 +77,9 @@ function initTheme() {
   applyTheme(t, false);
   $("#themeBtn").addEventListener("click", () => {
     const next = THEMES[(THEMES.indexOf(currentTheme()) + 1) % THEMES.length];
+    if (next === currentTheme()) return;
     applyTheme(next);
+    glitchSwitch();
   });
 }
 
@@ -122,17 +138,23 @@ function decodeB64(s) {
 
 const BLOCK_KINDS = new Set(["memo", "pull", "timeline", "tabs", "collapse", "box", "section"]);
 
-/** Apply fn only to text outside fenced code blocks, so examples stay literal. */
+/** Apply fn only to text outside fenced code blocks, so examples stay literal.
+    Closing fence must be at least as long as the opening fence (CommonMark). */
 function outsideCode(md, fn) {
   const lines = md.split("\n");
-  let inCode = false;
+  let fence = null; // the opening fence run (``` or ~~~) while inside code
   const buf = [], out = [];
   const flush = () => {
-    if (buf.length) { out.push(inCode ? buf.join("\n") : fn(buf.join("\n"))); buf.length = 0; }
+    if (buf.length) { out.push(fence ? buf.join("\n") : fn(buf.join("\n"))); buf.length = 0; }
   };
   for (const line of lines) {
-    if (/^```/.test(line)) { flush(); out.push(line); inCode = !inCode; }
-    else buf.push(line);
+    const m = line.match(/^(`{3,}|~{3,})/);
+    if (m) {
+      const run = m[1];
+      if (!fence) { flush(); out.push(line); fence = run; }
+      else if (run[0] === fence[0] && run.length >= fence.length) { flush(); out.push(line); fence = null; }
+      else buf.push(line); // shorter/inner fence — content, not a boundary
+    } else buf.push(line);
   }
   flush();
   return out.join("\n");
@@ -150,6 +172,8 @@ function preprocessComponents(md) {
     // badges & tags: :badge[..] :badge-red[..] :badge-ghost[..] :tag[..]
     chunk = chunk.replace(/:(badge(?:-red|-ghost)?|tag)\[([^\]]+)\]/g, (_, kind, t) =>
       `@@BADGE:${kind}:${b64e(t)}@@`);
+    // text highlights: :hl[text] → marker highlight
+    chunk = chunk.replace(/:hl\[([^\]]+)\]/g, (_, t) => `@@HL:${b64e(t)}@@`);
     // ||spoiler|| → placeholder (inline, non-greedy)
     chunk = chunk.replace(/\|\|([\s\S]+?)\|\|/g, (_, t) => `@@SPOILER:${b64e(t)}@@`);
     // ==redacted== → placeholder
@@ -351,6 +375,9 @@ function postprocessHTML(html, ctx) {
     const cls = kind === "badge" ? "badge" : `badge badge--${kind.slice(6)}`;
     return `<span class="${cls}">${t}</span>`;
   });
+  // inline: text highlights
+  html = html.replace(/@@HL:([A-Za-z0-9+/=]+)@@/g, (_, b) =>
+    `<mark class="hl">${esc(decodeB64(b))}</mark>`);
   // blocks: directive components — body gets a nested markdown render
   html = html.replace(/(?:<p>)?@@BLOCK:([a-z]+):([A-Za-z0-9+/=]*):([A-Za-z0-9+/=]*)@@(?:<\/p>)?/g, (_, kind, ab, bb) => {
     const args = decodeB64(ab), body = decodeB64(bb);
