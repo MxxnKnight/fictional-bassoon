@@ -29,6 +29,9 @@
   --accent: #e5ff00;
   --accent-ink: #121212;
   --hl: #ffe14d;
+  --hl-red: #ffb8b8;
+  --hl-blue: #bcd9ff;
+  --hl-green: #bfe6bf;
   --danger: #dc2626;
   --card: #ffffff;
   --chip-bg: #121212;
@@ -58,6 +61,9 @@
   --ticker-ink: #0f1115;
   --code-bg: rgb(232 230 225 / .08);
   --hl: #e5ff00;
+  --hl-red: #c04545;
+  --hl-blue: #3f6fb5;
+  --hl-green: #35945c;
   --radius: 10px;
 }
 
@@ -80,6 +86,9 @@
   --ticker-ink: #ffffff;
   --code-bg: #f0f0f0;
   --hl: #e5ff00;
+  --hl-red: #ff0000;
+  --hl-blue: #0000ff;
+  --hl-green: #00a000;
   --radius: 0;
   --shadow: none;
 }
@@ -158,6 +167,12 @@
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
 }
+.hl--red { background: var(--hl-red, #ffb8b8); }
+.hl--blue { background: var(--hl-blue, #bcd9ff); }
+.hl--green { background: var(--hl-green, #bfe6bf); }
+[data-theme="brutalism"] .hl--red,
+[data-theme="brutalism"] .hl--blue,
+[data-theme="brutalism"] .hl--green { color: #fff; }
 
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 

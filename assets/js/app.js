@@ -172,8 +172,9 @@ function preprocessComponents(md) {
     // badges & tags: :badge[..] :badge-red[..] :badge-ghost[..] :tag[..]
     chunk = chunk.replace(/:(badge(?:-red|-ghost)?|tag)\[([^\]]+)\]/g, (_, kind, t) =>
       `@@BADGE:${kind}:${b64e(t)}@@`);
-    // text highlights: :hl[text] → marker highlight
-    chunk = chunk.replace(/:hl\[([^\]]+)\]/g, (_, t) => `@@HL:${b64e(t)}@@`);
+    // text highlights: :hl[text] and color variants :hl-red[text] :hl-blue[text] :hl-green[text]
+    chunk = chunk.replace(/:hl-(red|blue|green)\[([^\]]+)\]/g, (_, c, t) => `@@HL:${c}:${b64e(t)}@@`);
+    chunk = chunk.replace(/:hl\[([^\]]+)\]/g, (_, t) => `@@HL::${b64e(t)}@@`);
     // ||spoiler|| → placeholder (inline, non-greedy)
     chunk = chunk.replace(/\|\|([\s\S]+?)\|\|/g, (_, t) => `@@SPOILER:${b64e(t)}@@`);
     // ==redacted== → placeholder
@@ -373,9 +374,9 @@ function postprocessHTML(html, ctx) {
   // footnote refs
   html = html.replace(/@@FNREF:([^:]+):(\d+)@@/g, (_, id, n) =>
     `<a class="footnote-ref" id="fnref-${esc(id)}" href="#fn-${esc(id)}" aria-label="Footnote ${n}">[${n}]</a>`);
-  // spoilers
+  // spoilers — inner content gets a full markdown render so bold, links, highlights work inside
   html = html.replace(/@@SPOILER:([A-Za-z0-9+/=]+)@@/g, (_, b) =>
-    `<span class="spoiler" tabindex="0" role="button" aria-label="Spoiler, activate to reveal">${esc(decodeB64(b))}</span>`);
+    `<span class="spoiler" tabindex="0" role="button" aria-label="Spoiler, activate to reveal">${renderInner(decodeB64(b))}</span>`);
   // redactions
   html = html.replace(/@@REDACTED:([A-Za-z0-9+/=]+)@@/g, (_, b) =>
     `<span class="redacted" aria-label="Redacted">${esc(decodeB64(b))}</span>`);
@@ -395,9 +396,9 @@ function postprocessHTML(html, ctx) {
     const cls = kind === "badge" ? "badge" : `badge badge--${kind.slice(6)}`;
     return `<span class="${cls}">${t}</span>`;
   });
-  // inline: text highlights
-  html = html.replace(/@@HL:([A-Za-z0-9+/=]+)@@/g, (_, b) =>
-    `<mark class="hl">${esc(decodeB64(b))}</mark>`);
+  // inline: text highlights (with optional color variant)
+  html = html.replace(/@@HL:([a-z]*):([A-Za-z0-9+/=]+)@@/g, (_, c, b) =>
+    `<mark class="hl${c ? " hl--" + c : ""}">${esc(decodeB64(b))}</mark>`);
   // blocks: directive components — body gets a nested markdown render
   html = html.replace(/(?:<p>)?@@BLOCK:([a-z]+):([A-Za-z0-9+/=]*):([A-Za-z0-9+/=]*)@@(?:<\/p>)?/g, (_, kind, ab, bb) => {
     const args = decodeB64(ab), body = decodeB64(bb);
@@ -449,7 +450,7 @@ function buildRenderer() {
   // inline placeholders (badges, highlights, tooltips…) are still raw at
   // heading-render time — decode them for clean TOC text and anchor ids.
   const headingPlain = (s) => s
-    .replace(/@@HL:([A-Za-z0-9+/=]+)@@/g, (_, b) => decodeB64(b))
+    .replace(/@@HL:[a-z]*:([A-Za-z0-9+/=]+)@@/g, (_, b) => decodeB64(b))
     .replace(/@@BADGE:(?:badge(?:-red|-ghost)?|tag):([A-Za-z0-9+/=]+)@@/g, (_, b) => decodeB64(b))
     .replace(/@@TIP:([A-Za-z0-9+/=]+):[A-Za-z0-9+/=]+@@/g, (_, b) => decodeB64(b))
     .replace(/@@(?:SPOILER|REDACTED):([A-Za-z0-9+/=]+)@@/g, (_, b) => decodeB64(b))
@@ -492,7 +493,7 @@ function buildRenderer() {
     if (title && /^spoiler\s*:/i.test(title)) {
       const reason = esc(title.replace(/^spoiler\s*:\s*/i, ""));
       return `<figure class="sealed" data-sealed><img src="${esc(src)}" alt="${alt}" loading="lazy">` +
-        `<button class="sealed__cover" type="button"><span class="sealed__label">SEALED EVIDENCE — TAP TO UNSEAL</span>` +
+        `<button class="sealed__cover" type="button"><span class="sealed__label">SPOILER — TAP TO REVEAL</span>` +
         (reason ? `<span class="sealed__reason">${reason}</span>` : "") + `</button>` +
         (alt ? `<figcaption>${alt}</figcaption>` : "") + `</figure>`;
     }

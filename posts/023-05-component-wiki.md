@@ -51,17 +51,17 @@ Add `filter:` to the image title for CSS filters, then `|` and a caption.
 
 Any CSS filter works: `blur(2px)`, `invert(1)`, `saturate(2)`, chained combos.
 
-## Sealed images
+## Spoiler images
 
-Put `spoiler:` first in the title and the image stays blurred until tapped.
+Put `spoiler:` first in the title and the image stays blurred behind a **SPOILER** cover until tapped.
 
 ```text
-![Raid photograph](https://picsum.photos/seed/dossier9/880/460 "spoiler: Graphic content — tap to unseal")
+![Raid photograph](https://picsum.photos/seed/dossier9/880/460 "spoiler: Graphic content — tap to reveal")
 ```
 
 **Live:**
 
-![Raid photograph](https://picsum.photos/seed/dossier9/880/460 "spoiler: Graphic content — tap to unseal")
+![Raid photograph](https://picsum.photos/seed/dossier9/880/460 "spoiler: Graphic content — tap to reveal")
 
 ## Video player
 
@@ -103,7 +103,7 @@ And a generic framed embed for anything else:
 
 ## Code
 
-Inline code looks like `this`. Fenced blocks become a code box with the language stamped on top, a **copy button**, and **syntax colors** that follow the active theme.
+Inline code looks like `this`. Fenced blocks become a code box with the language stamped on top and a **copy button**. Syntax is classified monochrome — keywords bold, comments faint, no rainbow.
 
 ````text
 ```js
@@ -310,12 +310,16 @@ Everything downstream of the landing station routes through this room.
 
 ## Collapsing blocks
 
-For material that's there if the reader wants it.
+For material that's there if the reader wants it. Stack as many as you like — one after another, each with its own `:::` closer. (Don't nest them.)
 
 ```text
 :::collapse Why this matters
 Because the cables that went dark carry 40% of the region's traffic,
 and nobody has explained the other 60%.
+:::
+
+:::collapse The dissenting view
+Two engineers insist it was a maintenance window. Their logs disagree with each other.
 :::
 ```
 
@@ -324,6 +328,10 @@ and nobody has explained the other 60%.
 :::collapse Why this matters
 Because the cables that went dark carry 40% of the region's traffic,
 and nobody has explained the other 60%.
+:::
+
+:::collapse The dissenting view
+Two engineers insist it was a maintenance window. Their logs disagree with each other.
 :::
 
 ## Dividers
@@ -354,15 +362,17 @@ and nobody has explained the other 60%.
 
 ## Text highlights
 
-Marker-pen highlights with `:hl[text]`. Stays readable in every theme.
+Marker-pen highlights with `:hl[text]`. Stays readable in every theme. Pick a color per highlight with `:hl-red[]`, `:hl-blue[]` or `:hl-green[]`.
 
 ```text
 The stamp reads :hl[KOCHI 04:17] but the ink says otherwise.
+:hl-red[This part is disputed.] :hl-blue[This part checks out.] :hl-green[Verified by two sources.]
 ```
 
 **Live:**
 
 The stamp reads :hl[KOCHI 04:17] but the ink says otherwise.
+:hl-red[This part is disputed.] :hl-blue[This part checks out.] :hl-green[Verified by two sources.]
 
 ## Alert boxes
 
@@ -440,7 +450,7 @@ Press <kbd>Ctrl</kbd> + <kbd>K</kbd> to open the file index.
 
 ## The classics
 
-Still here, still working: ||spoilers||, ==redactions==, [[023-02|internal links]], sealed images, footnotes[^1], `:::memo` callouts and pull quotes.
+Still here, still working: ||spoilers||, ==redactions==, [[023-02|internal links]], spoiler images, footnotes[^1], `:::memo` callouts and pull quotes.
 
 [^1]: Footnotes still land at the bottom of the file, numbered and linked.
 
@@ -450,7 +460,7 @@ Still here, still working: ||spoilers||, ==redactions==, [[023-02|internal links
 |---|---|
 | Timeline | `:::timeline` … `- time — event` … `:::` |
 | Filtered image | `![alt](src "filter: sepia(1) \| cap")` |
-| Sealed image | `![alt](src "spoiler: reason — tap to unseal")` |
+| Spoiler image | `![alt](src "spoiler: reason — tap to reveal")` |
 | Video player | `{% video src="…" caption="…" %}` |
 | Audio | `{% audio src="…" %}` |
 | YouTube | `{% youtube VIDEO_ID %}` |
@@ -464,7 +474,7 @@ Still here, still working: ||spoilers||, ==redactions==, [[023-02|internal links
 | Collapse | `:::collapse Title` … `:::` |
 | Divider | `---` or `***` |
 | Badge / tag | `:badge[]` `:badge-red[]` `:badge-ghost[]` `:tag[]` |
-| Highlight | `:hl[text]` |
+| Highlight | `:hl[text]`, `:hl-red[text]`, `:hl-blue[text]`, `:hl-green[text]` |
 | Alert | `> [!NOTE\|TIP\|IMPORTANT\|WARNING\|CAUTION]` |
 | Tooltip | `[text](tooltip: tip)` |
 | Key | `<kbd>Key</kbd>` |
