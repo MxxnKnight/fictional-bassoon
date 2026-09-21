@@ -807,7 +807,11 @@ function buildRenderer() {
     .replace(/@@[A-Z]+(?::[^@]*)?@@/g, "");
 
   renderer.heading = (text, level) => {
-    const plain = headingPlain(text.replace(/<[^>]+>/g, ""));
+    // `text` arrives inline-parsed (entities escaped); decode back to plain
+    // text so tocHTML's esc() escapes exactly once (no "&amp;" showing).
+    const plain = headingPlain(text.replace(/<[^>]+>/g, ""))
+      .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"').replace(/&#39;/g, "'");
     const id = "h-" + slugify(plain);
     if (level <= 3) headings.push({ level, text: plain, id });
     return `<h${level} id="${id}">${text}<a class="h-anchor" href="#${id}" aria-label="Link to this section">#</a></h${level}>`;
@@ -908,7 +912,7 @@ function kickerHTML(type) {
 
 function heroHTML(p) {
   const img = p.image ? `<div class="hero__img"><img src="${esc(resolveImg(p.image))}" alt="" loading="lazy"></div>` : "";
-  return `<a class="hero hero--featured" href="#/file/${p.id}">
+  return `<a class="hero hero--featured${img ? "" : " hero--noimg"}" href="#/file/${p.id}">
     <div class="hero__text">
     <div class="hero__kicker"><span class="kicker kicker--feat">◆ FEATURED ◆</span><span class="hero__fileno">FILE ${esc(p.fileNo)}</span></div>
     <h2 class="hero__title">${richInline(p.title)}</h2>
