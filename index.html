@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>DOSSIER — A Brutalist News System</title>
   <meta name="description" content="The Dossier. A brutalist news system. No trackers. No ads. Just files.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23141412'/%3E%3Ctext x='16' y='23' font-family='monospace' font-size='18' font-weight='bold' fill='%23f5f2ea' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -83,10 +84,21 @@
         <ul class="publish__list">
           <li><code>||spoiler||</code> — blurred text, tap to reveal</li>
           <li><code>![alt](img.jpg "spoiler: reason")</code> — sealed image, tap to unseal</li>
+          <li><code>![alt](img.jpg "filter: grayscale(1)")</code> — image with CSS filters</li>
           <li><code>==redacted==</code> — black-bar redaction</li>
           <li><code>[[023-02]]</code> — internal link to another file</li>
+          <li><code>:::timeline</code> — vertical incident timeline</li>
+          <li><code>{% youtube ID %}</code> / <code>{% video %}</code> / <code>{% audio %}</code> — embeds &amp; themed player</li>
+          <li><code>```lang</code> — code box with copy button</li>
+          <li><code>:::box</code>, <code>:::tabs</code>, <code>:::collapse</code>, <code>:::section</code> — structured blocks</li>
+          <li><code>&gt; [!NOTE]</code> — alert boxes (note, tip, important, warning, caution)</li>
+          <li><code>:badge[]</code> <code>:tag[]</code> — badges &amp; tags</li>
+          <li><code>[text](tooltip: tip)</code> — hover tooltips</li>
+          <li><code>[Label](button:/path)</code> — dossier buttons</li>
+          <li><code>- [ ]</code> checklists, <code>&lt;kbd&gt;</code> keys, <code>***</code> dividers</li>
           <li><code>[^1]</code> footnotes, <code>:::memo</code> callout boxes, pull quotes, tables, anchors on every heading</li>
         </ul>
+        <p class="publish__lede">Full reference with live previews: open file <a href="#/file/component-wiki">023-05, the Field Manual</a>.</p>
         <p class="publish__lede">Point the board at your repo by setting <code>REPO</code> at the top of <code>assets/js/app.js</code>. Leave it empty to serve <code>/posts</code> locally.</p>
       </div>
     </section>

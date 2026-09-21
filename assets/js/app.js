@@ -109,21 +109,220 @@ function extractFootnotes(md) {
   return { md, defs, order: order.filter((id) => seen.has(id)) };
 }
 
-/** Custom inline/block components, pre-marked. */
-function preprocessComponents(md) {
-  // ||spoiler|| → placeholder (inline, non-greedy)
-  md = md.replace(/\|\|([\s\S]+?)\|\|/g, (_, t) => `@@SPOILER:${btoa(unescape(encodeURIComponent(t)))}@@`);
-  // ==redacted== → placeholder
-  md = md.replace(/==([^=\n]+?)==/g, (_, t) => `@@REDACTED:${btoa(unescape(encodeURIComponent(t)))}@@`);
-  // :::memo Title ... :::  and  :::pull ... :::
-  md = md.replace(/^:::(memo|pull)\s*(.*)$\n([\s\S]*?)^:::$/gm, (_, kind, title, body) =>
-    `\n@@BLOCK:${kind}:${btoa(unescape(encodeURIComponent(title.trim())))}:${btoa(unescape(encodeURIComponent(body)))}@@\n`);
-  // [[023-02]] or [[023-02|label]] → internal link
-  md = md.replace(/\[\[([\w-]+)(?:\|([^\]]+))?\]\]/g, (_, id, label) => `@@WIKI:${id}:${btoa(unescape(encodeURIComponent(label || id)))}@@`);
-  return md;
+/* Base64 for placeholders: padding stripped so "==" redaction syntax
+   can never match inside a placeholder. decodeB64 re-pads. */
+const b64e = (s) => btoa(unescape(encodeURIComponent(String(s)))).replace(/=+$/, "");
+function decodeB64(s) {
+  try {
+    s = String(s);
+    s += "=".repeat((4 - (s.length % 4)) % 4);
+    return decodeURIComponent(escape(atob(s)));
+  } catch (_) { return ""; }
 }
 
-function decodeB64(s) { try { return decodeURIComponent(escape(atob(s))); } catch (_) { return ""; } }
+const BLOCK_KINDS = new Set(["memo", "pull", "timeline", "tabs", "collapse", "box", "section"]);
+
+/** Apply fn only to text outside fenced code blocks, so examples stay literal. */
+function outsideCode(md, fn) {
+  const lines = md.split("\n");
+  let inCode = false;
+  const buf = [], out = [];
+  const flush = () => {
+    if (buf.length) { out.push(inCode ? buf.join("\n") : fn(buf.join("\n"))); buf.length = 0; }
+  };
+  for (const line of lines) {
+    if (/^```/.test(line)) { flush(); out.push(line); inCode = !inCode; }
+    else buf.push(line);
+  }
+  flush();
+  return out.join("\n");
+}
+
+/** Custom inline/block components, pre-marked. Never touches fenced code. */
+function preprocessComponents(md) {
+  return outsideCode(md, (chunk) => {
+    // shield inline code spans so `{% %}`, tooltips etc. inside them stay literal
+    const codes = [];
+    chunk = chunk.replace(/`[^`\n]+`/g, (m) => { codes.push(m); return `@@CODE${codes.length - 1}@@`; });
+    // tooltips: [text](tooltip: tip shown on hover / tap)
+    chunk = chunk.replace(/\[([^\]]+)\]\(tooltip:\s*([^)]+)\)/g, (_, t, tip) =>
+      `@@TIP:${b64e(t)}:${b64e(tip.trim())}@@`);
+    // badges & tags: :badge[..] :badge-red[..] :badge-ghost[..] :tag[..]
+    chunk = chunk.replace(/:(badge(?:-red|-ghost)?|tag)\[([^\]]+)\]/g, (_, kind, t) =>
+      `@@BADGE:${kind}:${b64e(t)}@@`);
+    // ||spoiler|| → placeholder (inline, non-greedy)
+    chunk = chunk.replace(/\|\|([\s\S]+?)\|\|/g, (_, t) => `@@SPOILER:${b64e(t)}@@`);
+    // ==redacted== → placeholder
+    chunk = chunk.replace(/==([^=\n]+?)==/g, (_, t) => `@@REDACTED:${b64e(t)}@@`);
+    // :::kind args ... :::  directive blocks (memo, pull, timeline, tabs, collapse, box, section)
+    chunk = chunk.replace(/^:::(\w+)([^\n]*)\n([\s\S]*?)^:::$/gm, (_, kind, args, body) => {
+      if (!BLOCK_KINDS.has(kind.toLowerCase())) return _;
+      return `\n@@BLOCK:${kind.toLowerCase()}:${b64e(args.trim())}:${b64e(body)}@@\n`;
+    });
+    // {% youtube|video|audio|embed ... %} embeds
+    chunk = chunk.replace(/\{%\s*(youtube|video|audio|embed)\s+([^%]*?)%\}/g, (_, kind, args) =>
+      `@@EMBED:${kind}:${b64e(args.trim())}@@`);
+    // fancy divider: a line of only ***
+    chunk = chunk.replace(/^[ \t]*\*{3,}[ \t]*$/gm, "@@DIVIDER@@");
+    // alerts: > [!KIND] optional title, then > body lines
+    chunk = chunk.replace(/^>[ \t]*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\][ \t]*([^\n]*)\n((?:^[ \t]*>[^\n]*\n?)*)/gim,
+      (_, kind, first, rest) => {
+        const title = first.trim();
+        const body = rest.replace(/^[ \t]*>[ \t]?/gm, "").replace(/\s+$/, "");
+        return `\n@@ALERT:${kind.toLowerCase()}:${b64e(title)}:${b64e(body)}@@\n`;
+      });
+    // [[023-02]] or [[023-02|label]] → internal link
+    chunk = chunk.replace(/\[\[([\w-]+)(?:\|([^\]]+))?\]\]/g, (_, id, label) => `@@WIKI:${id}:${b64e(label || id)}@@`);
+    // restore shielded inline code spans
+    chunk = chunk.replace(/@@CODE(\d+)@@/g, (_, i) => codes[+i] ?? "");
+    return chunk;
+  });
+}
+
+/** Render a markdown fragment (nested component bodies). Headings stay out of the TOC. */
+function renderInner(md) {
+  if (!md || !md.trim()) return "";
+  const { renderer } = buildRenderer();
+  marked.setOptions({ renderer, breaks: false, gfm: true });
+  return postprocessHTML(marked.parse(preprocessComponents(md)), { footnotes: { defs: new Map(), order: [] } });
+}
+
+/** key="value" pairs plus an optional bare first token (used as src). */
+function parseKV(s) {
+  const kv = {};
+  const re = /(\w+)="([^"]*)"/g;
+  let m;
+  while ((m = re.exec(s))) kv[m[1]] = m[2];
+  const bare = s.replace(/(\w+)="([^"]*)"/g, " ").trim().split(/\s+/).filter(Boolean);
+  if (bare.length && !kv.src) kv.src = bare[0];
+  return kv;
+}
+
+function resolveMedia(src) {
+  if (/^(https?:|data:|\/|#)/i.test(src)) return src;
+  return POSTS_BASE + src;
+}
+
+function renderTimeline(body) {
+  const items = [];
+  for (const line of body.split("\n")) {
+    const m = line.match(/^\s*-\s*(.+)$/);
+    if (!m) continue;
+    const text = m[1].trim();
+    const sp = text.match(/^(.*?)\s*(?:—|\||--)\s*(.+)$/);
+    const time = sp ? sp[1].trim() : "";
+    const event = sp ? sp[2] : text;
+    items.push(`<li><span class="timeline__time">${esc(time)}</span><div class="timeline__event">${renderInner(event)}</div></li>`);
+  }
+  if (!items.length) return "";
+  return `<ol class="timeline">${items.join("")}</ol>`;
+}
+
+function renderTabs(body) {
+  const parts = body.split(/^##\s+(.+)$/gm);
+  const tabs = [];
+  for (let i = 1; i < parts.length; i += 2) tabs.push({ title: parts[i].trim(), body: parts[i + 1] || "" });
+  if (!tabs.length) return renderInner(body);
+  const idp = "ct" + Math.random().toString(36).slice(2, 8);
+  const bar = tabs.map((t, i) =>
+    `<button class="ctabs__btn${i === 0 ? " is-active" : ""}" type="button" role="tab" aria-selected="${i === 0}" data-ctab="${idp}-${i}">${esc(t.title)}</button>`).join("");
+  const panels = tabs.map((t, i) =>
+    `<div class="ctabs__panel${i === 0 ? " is-active" : ""}" id="${idp}-${i}" role="tabpanel">${renderInner(t.body)}</div>`).join("");
+  return `<div class="ctabs" data-ctabs><div class="ctabs__bar" role="tablist">${bar}</div>${panels}</div>`;
+}
+
+function renderBox(args, body) {
+  const m = args.match(/^(red|ghost)?\s*(.*)$/);
+  const kind = m[1] || "", title = m[2].trim();
+  return `<div class="dbox${kind ? " dbox--" + kind : ""}">` +
+    (title ? `<div class="dbox__title">${esc(title)}</div>` : "") +
+    `<div class="dbox__body">${renderInner(body)}</div></div>`;
+}
+
+function renderEmbed(kind, args) {
+  if (kind === "youtube") {
+    const id = args.split(/\s+/)[0].replace(/[^a-zA-Z0-9_-]/g, "");
+    if (!id) return "";
+    return `<div class="embed16x9"><iframe src="https://www.youtube-nocookie.com/embed/${id}" title="Embedded video" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+  }
+  const kv = parseKV(args);
+  const src = kv.src || "";
+  if (!src) return "";
+  const safe = esc(resolveMedia(src));
+  if (kind === "video") {
+    const poster = kv.poster ? ` poster="${esc(resolveMedia(kv.poster))}"` : "";
+    const cap = kv.caption ? `<div class="vplayer__cap">${esc(kv.caption)}</div>` : "";
+    return `<div class="vplayer" data-vplayer><div class="vplayer__stage"><video src="${safe}"${poster} preload="metadata" playsinline></video>` +
+      `<button class="vplayer__big" type="button" aria-label="Play video"><span aria-hidden="true">▶</span></button></div>` +
+      `<div class="vplayer__bar"><button class="vplayer__play" type="button" aria-label="Play or pause">▶</button>` +
+      `<div class="vplayer__seek" role="slider" tabindex="0" aria-label="Seek" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="vplayer__fill"></div></div>` +
+      `<span class="vplayer__time">0:00 / 0:00</span>` +
+      `<button class="vplayer__mute" type="button">SOUND ON</button>` +
+      `<button class="vplayer__full" type="button" aria-label="Fullscreen">⛶</button></div>${cap}</div>`;
+  }
+  if (kind === "audio") {
+    const cap = kv.caption ? `<div class="aplayer__cap">${esc(kv.caption)}</div>` : "";
+    return `<div class="aplayer"><audio src="${safe}" controls preload="metadata"></audio>${cap}</div>`;
+  }
+  return `<div class="embed16x9 embed--frame"><iframe src="${safe}" title="Embedded content" loading="lazy" allowfullscreen></iframe></div>`;
+}
+
+/** Themed custom video player wiring. */
+function setupPlayer(box) {
+  const v = box.querySelector("video");
+  if (!v) return;
+  const big = box.querySelector(".vplayer__big");
+  const play = box.querySelector(".vplayer__play");
+  const seek = box.querySelector(".vplayer__seek");
+  const fill = box.querySelector(".vplayer__fill");
+  const time = box.querySelector(".vplayer__time");
+  const mute = box.querySelector(".vplayer__mute");
+  const full = box.querySelector(".vplayer__full");
+  const fmt = (s) => {
+    if (!isFinite(s) || s < 0) s = 0;
+    s = Math.floor(s);
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  };
+  const sync = () => {
+    const playing = !v.paused && !v.ended;
+    if (play) play.textContent = playing ? "❚❚" : "▶";
+    if (big) big.classList.toggle("is-hidden", playing || v.currentTime > 0);
+    if (fill && v.duration) fill.style.width = `${(v.currentTime / v.duration) * 100}%`;
+    if (seek && v.duration) seek.setAttribute("aria-valuenow", Math.round((v.currentTime / v.duration) * 100));
+    if (time) time.textContent = `${fmt(v.currentTime)} / ${fmt(v.duration)}`;
+  };
+  const toggle = () => { if (v.paused) v.play().catch(() => {}); else v.pause(); };
+  if (play) play.addEventListener("click", toggle);
+  if (big) big.addEventListener("click", toggle);
+  v.addEventListener("click", toggle);
+  ["play", "pause", "timeupdate", "loadedmetadata", "ended"].forEach((ev) => v.addEventListener(ev, sync));
+  if (seek) {
+    const jump = (clientX) => {
+      const r = seek.getBoundingClientRect();
+      const ratio = Math.min(Math.max((clientX - r.left) / r.width, 0), 1);
+      if (v.duration) v.currentTime = ratio * v.duration;
+    };
+    seek.addEventListener("click", (e) => jump(e.clientX));
+    seek.addEventListener("keydown", (e) => {
+      if (!v.duration) return;
+      if (e.key === "ArrowRight") { v.currentTime = Math.min(v.duration, v.currentTime + 5); e.preventDefault(); }
+      if (e.key === "ArrowLeft") { v.currentTime = Math.max(0, v.currentTime - 5); e.preventDefault(); }
+      if (e.key === "Home") { v.currentTime = 0; e.preventDefault(); }
+      if (e.key === "End") { v.currentTime = v.duration; e.preventDefault(); }
+    });
+  }
+  if (mute) mute.addEventListener("click", () => {
+    v.muted = !v.muted;
+    mute.textContent = v.muted ? "MUTED" : "SOUND ON";
+    mute.classList.toggle("is-muted", v.muted);
+  });
+  if (full) full.addEventListener("click", () => {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else if (box.requestFullscreen) box.requestFullscreen().catch(() => {});
+    else if (v.webkitEnterFullscreen) v.webkitEnterFullscreen();
+  });
+  sync();
+}
 
 /** Restore placeholders into final HTML after marked runs. */
 function postprocessHTML(html, ctx) {
@@ -142,13 +341,46 @@ function postprocessHTML(html, ctx) {
     const href = target ? `#/file/${target.id}` : `#/file/${esc(id)}`;
     return `<a class="wiki-link" href="${href}">◈ ${esc(decodeB64(b))}</a>`;
   });
-  // blocks: memo / pull — body gets a nested marked render
-  html = html.replace(/@@BLOCK:(memo|pull):([A-Za-z0-9+/=]*):([A-Za-z0-9+/=]+)@@/g, (_, kind, tb, bb) => {
-    const title = decodeB64(tb), body = decodeB64(bb);
-    const inner = marked.parse(body, { breaks: false });
-    if (kind === "memo") return `<aside class="memo"><div class="memo__title">${esc(title) || "FIELD MEMO"}</div>${inner}</aside>`;
-    return `<aside class="pull">${inner}</aside>`;
+  // inline: tooltips
+  html = html.replace(/@@TIP:([A-Za-z0-9+/=]+):([A-Za-z0-9+/=]+)@@/g, (_, tb, pb) =>
+    `<span class="has-tip" tabindex="0" data-tip="${esc(decodeB64(pb))}">${esc(decodeB64(tb))}</span>`);
+  // inline: badges & tags
+  html = html.replace(/@@BADGE:(badge(?:-red|-ghost)?|tag):([A-Za-z0-9+/=]+)@@/g, (_, kind, b) => {
+    const t = esc(decodeB64(b));
+    if (kind === "tag") return `<span class="tag">#${t}</span>`;
+    const cls = kind === "badge" ? "badge" : `badge badge--${kind.slice(6)}`;
+    return `<span class="${cls}">${t}</span>`;
   });
+  // blocks: directive components — body gets a nested markdown render
+  html = html.replace(/(?:<p>)?@@BLOCK:([a-z]+):([A-Za-z0-9+/=]*):([A-Za-z0-9+/=]*)@@(?:<\/p>)?/g, (_, kind, ab, bb) => {
+    const args = decodeB64(ab), body = decodeB64(bb);
+    if (kind === "memo") return `<aside class="memo"><div class="memo__title">${esc(args) || "FIELD MEMO"}</div>${renderInner(body)}</aside>`;
+    if (kind === "pull") return `<aside class="pull">${renderInner(body)}</aside>`;
+    if (kind === "timeline") return renderTimeline(body);
+    if (kind === "tabs") return renderTabs(body);
+    if (kind === "collapse") return `<details class="collapse"><summary>${esc(args) || "DETAILS"}</summary><div class="collapse__body">${renderInner(body)}</div></details>`;
+    if (kind === "box") return renderBox(args, body);
+    if (kind === "section") return `<section class="dsection"><div class="dsection__title">${esc(args) || "SECTION"}</div><div class="dsection__body">${renderInner(body)}</div></section>`;
+    return "";
+  });
+  // embeds: youtube / video / audio / generic iframe
+  html = html.replace(/(?:<p>)?@@EMBED:(youtube|video|audio|embed):([A-Za-z0-9+/=]*)@@(?:<\/p>)?/g, (_, kind, b) =>
+    renderEmbed(kind, decodeB64(b)));
+  // alerts: > [!KIND]
+  const ALERT_TITLES = { note: "NOTE", tip: "FIELD TIP", important: "IMPORTANT", warning: "WARNING", caution: "CAUTION" };
+  html = html.replace(/(?:<p>)?@@ALERT:(note|tip|important|warning|caution):([A-Za-z0-9+/=]*):([A-Za-z0-9+/=]*)@@(?:<\/p>)?/g,
+    (_, kind, tb, bb) => {
+      const title = decodeB64(tb) || ALERT_TITLES[kind];
+      return `<div class="alert alert--${kind}" role="note"><div class="alert__title">${esc(title)}</div><div class="alert__body">${renderInner(decodeB64(bb))}</div></div>`;
+    });
+  // fancy divider
+  html = html.replace(/(?:<p>)?@@DIVIDER@@(?:<\/p>)?/g,
+    `<div class="divider" aria-hidden="true"><span>◆</span></div>`);
+  // code boxes: fenced blocks get a header with language + copy button
+  html = html.replace(/<pre><code class="language-([\w-]+)">([\s\S]*?)<\/code><\/pre>/g, (_, lang, code) =>
+    `<div class="codebox"><div class="codebox__bar"><span class="codebox__lang">${esc(lang.toUpperCase())}</span><button class="codebox__copy" type="button" data-copy>COPY</button></div><pre><code class="language-${esc(lang)}">${code}</code></pre></div>`);
+  html = html.replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/g, (_, code) =>
+    `<div class="codebox"><div class="codebox__bar"><span class="codebox__lang">TEXT</span><button class="codebox__copy" type="button" data-copy>COPY</button></div><pre><code>${code}</code></pre></div>`);
   // footnotes section
   if (ctx.footnotes.order.length) {
     const items = ctx.footnotes.order.map((id) => {
@@ -179,6 +411,15 @@ function buildRenderer() {
       const target = POSTS.find((p) => p.fileNo === id || p.id === id);
       return `<a href="#/file/${target ? target.id : esc(id)}">◈ ${text}</a>`;
     }
+    // buttons: [Label](button:/path)  [Label](button:red:/path)  [Label](button:ghost:https://…)
+    if (href && href.startsWith("button:")) {
+      const rest = href.slice(7);
+      const m = rest.match(/^(red|ghost):(.*)$/s);
+      const variant = m ? m[1] : "", url = m ? m[2] : rest;
+      const t = title ? ` title="${esc(title)}"` : "";
+      const ext = /^(https?:)?\/\//i.test(url) ? ` target="_blank" rel="noopener noreferrer"` : "";
+      return `<a class="btn${variant ? " btn--" + variant : ""}" href="${esc(url)}"${t}${ext}>${text}</a>`;
+    }
     const isExt = href && /^(https?:)?\/\//i.test(href);
     const t = title ? ` title="${esc(title)}"` : "";
     if (isExt) return `<a class="ext" href="${esc(href)}"${t} target="_blank" rel="noopener noreferrer">${text}</a>`;
@@ -197,9 +438,14 @@ function buildRenderer() {
         (reason ? `<span class="sealed__reason">${reason}</span>` : "") + `</button>` +
         (alt ? `<figcaption>${alt}</figcaption>` : "") + `</figure>`;
     }
-    const cap = title ? ` title="${esc(title)}"` : "";
-    return `<figure><img src="${esc(src)}" alt="${alt}"${cap} loading="lazy">` +
-      (alt ? `<figcaption>${alt}</figcaption>` : "") + `</figure>`;
+    // image filters: ![alt](img.jpg "filter: grayscale(1) contrast(1.1) | optional caption")
+    let filter = "", fcap = "";
+    const fm = (title || "").match(/^filter:\s*([^|]+?)(?:\|\s*(.*))?$/is);
+    if (fm) { filter = fm[1].trim(); fcap = (fm[2] || "").trim(); }
+    const style = filter ? ` style="filter:${esc(filter)}"` : "";
+    const cap = !fm && title ? ` title="${esc(title)}"` : "";
+    const figcap = alt || fcap ? `<figcaption>${alt}${alt && fcap ? " — " : ""}${esc(fcap)}</figcaption>` : "";
+    return `<figure><img src="${esc(src)}" alt="${alt}"${style}${cap} loading="lazy">${figcap}</figure>`;
   };
 
   renderer.table = (header, body) =>
@@ -314,6 +560,41 @@ function bindArticleInteractions(root) {
     const btn = fig.querySelector(".sealed__cover");
     if (btn) btn.addEventListener("click", () => fig.classList.add("unsealed"));
   });
+  // codebox copy buttons
+  root.querySelectorAll("[data-copy]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const code = btn.closest(".codebox")?.querySelector("code");
+      if (!code) return;
+      const text = code.innerText;
+      try { await navigator.clipboard.writeText(text); }
+      catch (_) {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand("copy"); } catch (_) {}
+        ta.remove();
+      }
+      const old = btn.textContent;
+      btn.textContent = "COPIED ✓";
+      setTimeout(() => { btn.textContent = old; }, 1400);
+    });
+  });
+  // tabbed tables / tabbed content
+  root.querySelectorAll("[data-ctabs]").forEach((tabs) => {
+    const btns = [...tabs.querySelectorAll(".ctabs__btn")];
+    btns.forEach((b) => b.addEventListener("click", () => {
+      btns.forEach((x) => {
+        const on = x === b;
+        x.classList.toggle("is-active", on);
+        x.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      tabs.querySelectorAll(".ctabs__panel").forEach((p) =>
+        p.classList.toggle("is-active", p.id === b.dataset.ctab));
+    }));
+  });
+  // custom video players
+  root.querySelectorAll("[data-vplayer]").forEach(setupPlayer);
 }
 
 /* ───────── router ───────── */
