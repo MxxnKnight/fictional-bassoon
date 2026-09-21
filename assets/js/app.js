@@ -10,6 +10,7 @@ const CONFIG = {
   REPO: "MxxnKnight/fictional-bassoon", // GitHub repo — posts load from raw.githubusercontent.com
   BRANCH: "main",
   POSTS_DIR: "posts",
+  PRESS_CODE: "ink", // access code for the secret press room (#/press) — obscurity, not security
 };
 
 const POSTS_BASE = CONFIG.REPO
@@ -52,7 +53,7 @@ function applyTheme(name, save = true) {
   if (tl) tl.textContent = THEME_META[name].label;
   $("#themeBtn").setAttribute("aria-label", `Theme: ${name}. Activate to switch.`);
   const tag = $("#buildTag");
-  if (tag) tag.textContent = `BUILD: v024.4 // ${name.toUpperCase()} ACTIVE`;
+  if (tag) tag.textContent = `BUILD: v024.5 // ${name.toUpperCase()} ACTIVE`;
   if (save) { try { localStorage.setItem("dossier-theme", name); } catch (_) {} }
 }
 /** v1 theme-switch glitch: shake the page + white flash. */
@@ -137,7 +138,7 @@ function decodeB64(s) {
   } catch (_) { return ""; }
 }
 
-const BLOCK_KINDS = new Set(["memo", "pull", "timeline", "tabs", "collapse", "box", "section", "stat"]);
+const BLOCK_KINDS = new Set(["memo", "pull", "timeline", "tabs", "collapse", "box", "section", "stat", "person", "movie"]);
 
 /** Apply fn only to text outside fenced code blocks, so examples stay literal.
     Closing fence must be at least as long as the opening fence (CommonMark). */
@@ -180,7 +181,7 @@ function preprocessComponents(md) {
     chunk = chunk.replace(/\|\|([\s\S]+?)\|\|/g, (_, t) => `@@SPOILER:${b64e(t)}@@`);
     // ==redacted== → placeholder
     chunk = chunk.replace(/==([^=\n]+?)==/g, (_, t) => `@@REDACTED:${b64e(t)}@@`);
-    // :::kind args ... :::  directive blocks (memo, pull, timeline, tabs, collapse, box, section, stat)
+    // :::kind args ... :::  directive blocks (memo, pull, timeline, tabs, collapse, box, section, stat, person, movie)
     chunk = chunk.replace(/^:::(\w+)([^\n]*)\n([\s\S]*?)^:::$/gm, (_, kind, args, body) => {
       if (!BLOCK_KINDS.has(kind.toLowerCase())) return _;
       return `\n@@BLOCK:${kind.toLowerCase()}:${b64e(args.trim())}:${b64e(body)}@@\n`;
@@ -188,6 +189,11 @@ function preprocessComponents(md) {
     // {% youtube|video|audio|embed ... %} embeds
     chunk = chunk.replace(/\{%\s*(youtube|video|audio|embed)\s+([^%]*?)%\}/g, (_, kind, args) =>
       `@@EMBED:${kind}:${b64e(args.trim())}@@`);
+    // {% download|logo|img|stars ... %} inline directives
+    chunk = chunk.replace(/\{%\s*(download|logo|img|stars)\s+([^%]*?)%\}/g, (_, kind, args) =>
+      `@@DIRECTIVE:${kind}:${b64e(args.trim())}@@`);
+    // :stars[4.5] inline rating
+    chunk = chunk.replace(/:stars\[([^\]]+)\]/g, (_, v) => `@@DIRECTIVE:stars:${b64e(v.trim())}@@`);
     // fancy divider: a line of only ***
     chunk = chunk.replace(/^[ \t]*\*{3,}[ \t]*$/gm, "@@DIVIDER@@");
     // alerts: > [!KIND] optional title, then > body lines
@@ -219,7 +225,8 @@ function parseKV(s) {
   const re = /(\w+)="([^"]*)"/g;
   let m;
   while ((m = re.exec(s))) kv[m[1]] = m[2];
-  const bare = s.replace(/(\w+)="([^"]*)"/g, " ").trim().split(/\s+/).filter(Boolean);
+  const bare = s.replace(/(\w+)="([^"]*)"/g, " ").trim().split(/\s+/)
+    .filter(Boolean).map((t) => t.replace(/^"|"$/g, ""));
   if (bare.length && !kv.src) kv.src = bare[0];
   return kv;
 }
@@ -311,6 +318,72 @@ function renderEmbed(kind, args) {
     return `<div class="aplayer"><audio src="${safe}" controls preload="metadata"></audio>${cap}</div>`;
   }
   return `<div class="embed16x9 embed--frame"><iframe src="${safe}" title="Embedded content" loading="lazy" allowfullscreen></iframe></div>`;
+}
+
+/** {% download %} / {% logo %} / {% img %} / {% stars %} / :stars[] inline directives. */
+function renderDirective(kind, args) {
+  if (kind === "stars") {
+    const v = Math.min(5, Math.max(0, parseFloat(args) || 0));
+    const pct = (v / 5) * 100;
+    return `<span class="stars" role="img" aria-label="Rated ${v} out of 5"><span class="stars__bg" aria-hidden="true">★★★★★</span><span class="stars__fg" aria-hidden="true" style="width:${pct}%">★★★★★</span></span>`;
+  }
+  const kv = parseKV(args);
+  // positional tokens (quote-aware, skipping key="value" pairs already parsed)
+  const pos = (args.match(/"[^"]*"|\S+/g) || [])
+    .map((t) => t.replace(/^"|"$/g, ""))
+    .filter((t) => !/^\w+=/.test(t));
+  if (kind === "download") {
+    const src = kv.src || pos[0] || "";
+    if (!src) return "";
+    const label = kv.label || pos[1] || src.split("/").pop();
+    const ext = (src.split(".").pop() || "").replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 4);
+    return `<a class="dl-btn" href="${esc(resolveMedia(src))}" download><span class="dl-btn__icon" aria-hidden="true">↓</span><span class="dl-btn__label">${esc(label)}</span>${ext ? `<span class="dl-btn__ext">${esc(ext)}</span>` : ""}</a>`;
+  }
+  if (kind === "logo") {
+    const src = kv.src || pos[0] || "";
+    if (!src) return "";
+    const alt = kv.alt || pos[1] || "";
+    const w = parseInt(kv.w || kv.width || pos[2] || "0", 10);
+    return `<img class="logo" src="${esc(resolveMedia(src))}" alt="${esc(alt)}" loading="lazy"${w > 0 ? ` style="width:${w}px"` : ""}>`;
+  }
+  if (kind === "img") {
+    const src = kv.src || pos[0] || "";
+    if (!src) return "";
+    const caption = kv.caption || pos[1] || "";
+    const align = String(kv.align || pos[2] || "").toLowerCase();
+    const cls = align === "center" ? " fig--center" : align === "right" ? " fig--right" : align === "left" ? " fig--left" : "";
+    const cap = caption ? `<figcaption>${esc(caption)}</figcaption>` : "";
+    return `<figure class="fig${cls}"><img src="${esc(resolveMedia(src))}" alt="${esc(kv.alt || caption)}" loading="lazy">${cap}</figure>`;
+  }
+  return "";
+}
+
+/** :::person / :::movie — ID card: first markdown image becomes the portrait, the rest is info. */
+function renderIdCard(kind, args, body) {
+  const round = /\bround\b/i.test(args);
+  let imgHTML = "";
+  const m = body.match(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/);
+  let rest = body;
+  if (m) {
+    let src = m[2];
+    if (!/^(https?:|data:|\/)/i.test(src)) src = POSTS_BASE + src;
+    imgHTML = `<img class="id-card__img${round ? " is-round" : ""}" src="${esc(src)}" alt="${esc(m[1])}" loading="lazy">`;
+    rest = body.replace(m[0], "");
+  }
+  return `<div class="id-card id-card--${kind}">${imgHTML}<div class="id-card__body">${renderInner(rest.trim())}</div></div>`;
+}
+
+/** Clipboard helper with fallback. */
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; }
+  catch (_) {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      document.execCommand("copy"); ta.remove(); return true;
+    } catch (_) { return false; }
+  }
 }
 
 /** Themed custom video player wiring. */
@@ -410,12 +483,16 @@ function postprocessHTML(html, ctx) {
     if (kind === "collapse") return `<details class="collapse"><summary>${esc(args) || "DETAILS"}</summary><div class="collapse__body">${renderInner(body)}</div></details>`;
     if (kind === "box") return renderBox(args, body);
     if (kind === "stat") return renderStat(args, body);
+    if (kind === "person" || kind === "movie") return renderIdCard(kind, args, body);
     if (kind === "section") return `<section class="dsection"><div class="dsection__title">${esc(args) || "SECTION"}</div><div class="dsection__body">${renderInner(body)}</div></section>`;
     return "";
   });
   // embeds: youtube / video / audio / generic iframe
   html = html.replace(/(?:<p>)?@@EMBED:(youtube|video|audio|embed):([A-Za-z0-9+/=]*)@@(?:<\/p>)?/g, (_, kind, b) =>
     renderEmbed(kind, decodeB64(b)));
+  // inline directives: download / logo / img / stars
+  html = html.replace(/(?:<p>)?@@DIRECTIVE:(download|logo|img|stars):([A-Za-z0-9+/=]*)@@(?:<\/p>)?/g, (_, kind, b) =>
+    renderDirective(kind, decodeB64(b)));
   // alerts: > [!KIND]
   const ALERT_TITLES = { note: "NOTE", tip: "FIELD TIP", important: "IMPORTANT", warning: "WARNING", caution: "CAUTION" };
   html = html.replace(/(?:<p>)?@@ALERT:(note|tip|important|warning|caution):([A-Za-z0-9+/=]*):([A-Za-z0-9+/=]*)@@(?:<\/p>)?/g,
@@ -431,6 +508,11 @@ function postprocessHTML(html, ctx) {
     `<div class="codebox"><div class="codebox__bar"><span class="codebox__lang">${esc(lang.toUpperCase())}</span><button class="codebox__copy" type="button" data-copy>COPY</button></div><pre><code class="language-${esc(lang)}">${code}</code></pre></div>`);
   html = html.replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/g, (_, code) =>
     `<div class="codebox"><div class="codebox__bar"><span class="codebox__lang">TEXT</span><button class="codebox__copy" type="button" data-copy>COPY</button></div><pre><code>${code}</code></pre></div>`);
+  // task lists: this marked build emits plain checkboxes — tag the lists so the custom checklist CSS applies
+  html = html.replace(/<ul>(?:(?!<ul>)[\s\S])*?<\/ul>/g, (m) =>
+    /type="checkbox"/.test(m)
+      ? m.replace(/^<ul>/, '<ul class="contains-task-list">').replace(/<li>/g, '<li class="task-list-item">')
+      : m);
   // footnotes section
   if (ctx.footnotes.order.length) {
     const items = ctx.footnotes.order.map((id) => {
@@ -559,12 +641,12 @@ function kickerHTML(type) {
 
 function heroHTML(p) {
   const img = p.image ? `<div class="hero__img"><img src="${esc(resolveImg(p.image))}" alt="" loading="lazy"></div>` : "";
-  return `<a class="hero" href="#/file/${p.id}">
-    ${img}
-    <div class="hero__kicker">${p.pinned ? pinBadgeHTML() : ""}${kickerHTML(p.type)}<span class="hero__fileno">FILE ${esc(p.fileNo)}</span></div>
+  return `<a class="hero hero--featured" href="#/file/${p.id}">
+    <div class="hero__kicker"><span class="kicker kicker--feat">◆ FEATURED ◆</span><span class="hero__fileno">FILE ${esc(p.fileNo)}</span></div>
     <h2 class="hero__title">${richInline(p.title)}</h2>
     <p class="hero__stand">${richInline(p.summary || "")}</p>
-    <div class="hero__meta"><span>BY ${esc(p.author || "DOSSIER DESK")}</span><span>${esc(p.date || "")}</span><span class="hero__cta">READ THE FILE →</span></div>
+    <div class="hero__meta"><span>${esc(String(p.type || "FILE").toUpperCase())}</span><span>BY ${esc(p.author || "DOSSIER DESK")}</span><span>${esc(p.date || "")}</span><span class="hero__cta">READ THE FILE →</span></div>
+    ${img}
   </a>`;
 }
 
@@ -730,6 +812,79 @@ function bindArticleInteractions(root) {
   }
 }
 
+/* ───────── back-to-top button ───────── */
+function initToTop() {
+  const btn = $("#toTop");
+  if (!btn) return;
+  let ticking = false;
+  const update = () => {
+    ticking = false;
+    btn.classList.toggle("is-on", (window.scrollY || 0) > 600);
+  };
+  window.addEventListener("scroll", () => {
+    if (!ticking) { ticking = true; requestAnimationFrame(update); }
+  }, { passive: true });
+  btn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+  update();
+}
+
+/* ───────── the press room — secret route (#/press): draft, preview, copy ───────── */
+let pressBooted = false;
+function initPressRoom() {
+  if (pressBooted) return;
+  pressBooted = true;
+  const gate = $("#pressGate"), studio = $("#pressStudio");
+  if (!gate || !studio) return;
+  const open = () => { gate.hidden = true; studio.hidden = false; };
+  try { if (sessionStorage.getItem("dossier_press") === "1") open(); } catch (_) {}
+  const form = $("#pressGateForm");
+  if (form) form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const code = $("#pressCode") ? $("#pressCode").value : "";
+    if (code === (CONFIG.PRESS_CODE || "ink")) {
+      try { sessionStorage.setItem("dossier_press", "1"); } catch (_) {}
+      open();
+    } else {
+      const err = $("#pressErr");
+      if (err) err.hidden = false;
+    }
+  });
+  const input = $("#pressInput"), preview = $("#pressPreview"), previewBody = $("#pressPreviewBody"), prevBtn = $("#pressPreviewBtn");
+  if (!input || !preview || !previewBody || !prevBtn) return;
+  let showing = false;
+  const renderPreview = () => {
+    previewBody.innerHTML = renderInner(input.value) || `<p class="empty">NOTHING TO PREVIEW YET.</p>`;
+    bindArticleInteractions(previewBody);
+  };
+  prevBtn.addEventListener("click", () => {
+    showing = !showing;
+    if (showing) renderPreview();
+    preview.hidden = !showing;
+    input.hidden = showing;
+    prevBtn.textContent = showing ? "EDIT" : "PREVIEW";
+  });
+  const flash = (btn, ok) => {
+    const old = btn.textContent;
+    btn.textContent = ok ? "COPIED ✓" : "COPY FAILED";
+    setTimeout(() => { btn.textContent = old; }, 1400);
+  };
+  const copyBtn = $("#pressCopyHtml");
+  if (copyBtn) copyBtn.addEventListener("click", async (e) => {
+    if (!showing) renderPreview();
+    flash(e.currentTarget, await copyText(previewBody.innerHTML));
+  });
+  const copyMd = $("#pressCopyMd");
+  if (copyMd) copyMd.addEventListener("click", async (e) => {
+    flash(e.currentTarget, await copyText(input.value));
+  });
+  const clearBtn = $("#pressClear");
+  if (clearBtn) clearBtn.addEventListener("click", () => {
+    input.value = "";
+    if (showing) renderPreview();
+    input.focus();
+  });
+}
+
 /* ───────── reading progress bar (dossier view only) ───────── */
 function initReadProgress() {
   const wrap = $("#readProgress"), bar = $("#readProgressBar");
@@ -758,12 +913,13 @@ function setTab(name) {
   document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("is-active", t.dataset.tab === name));
 }
 function showView(name) {
-  ["board", "file", "publish"].forEach((v) => { $(`#view-${v}`).hidden = v !== name; });
+  ["board", "file", "publish", "press"].forEach((v) => { $(`#view-${v}`).hidden = v !== name; });
 }
 async function route() {
   const hash = location.hash || "#/board";
   const m = hash.match(/^#\/file\/([\w-]+)/);
   if (m) { setTab(""); showView("file"); await renderFile(m[1]); return; }
+  if (hash.startsWith("#/press")) { setTab(""); showView("press"); initPressRoom(); window.scrollTo(0, 0); return; }
   if (hash.startsWith("#/publish")) { setTab("publish"); showView("publish"); window.scrollTo(0, 0); return; }
   setTab("board"); showView("board"); renderBoard($("#searchInput").value);
 }
@@ -773,6 +929,7 @@ async function boot() {
   initTheme();
   datelineInit();
   initReadProgress();
+  initToTop();
   try {
     const manifest = await getJSON(POSTS_BASE + "manifest.json");
     POSTS = (manifest.posts || [])

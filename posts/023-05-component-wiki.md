@@ -456,6 +456,94 @@ Still here, still working: ||spoilers||, ==redactions==, [[023-02|internal links
 
 [^1]: Footnotes still land at the bottom of the file, numbered and linked.
 
+## Download button
+
+A proper dossier download — bordered button, file-type badge, works with bare filenames from `/posts`.
+
+```text
+{% download "evidence.pdf" "Download the evidence" %}
+```
+
+**Live:**
+
+{% download "evidence.pdf" "Download the evidence" %}
+
+## Rating stars
+
+Partial fill, theme-aware gold (black in brutalism). Block or inline.
+
+```text
+{% stars 4.5 %}
+
+The film scores :stars[3] from the desk.
+```
+
+**Live:**
+
+{% stars 4.5 %}
+
+The film scores :stars[3] from the desk.
+
+## Person & movie cards
+
+An ID card: the first image becomes the portrait, the rest is info. Add `round` for a circular portrait. `:::movie` uses a taller poster frame.
+
+```text
+:::person round
+![Ava Cross](ava.jpg)
+**Ava Cross** — Field agent
+Cleared for level 4. Speaks Malayalam, Hindi, English.
+:::
+
+:::movie
+![Poster](poster.jpg)
+**Drishyam** — 2013
+Thriller · :stars[4.5]
+:::
+```
+
+**Live:**
+
+:::person round
+![Ava Cross](ava.jpg)
+**Ava Cross** — Field agent
+Cleared for level 4. Speaks Malayalam, Hindi, English.
+:::
+
+:::movie
+![Poster](poster.jpg)
+**Drishyam** — 2013
+Thriller · :stars[4.5]
+:::
+
+## Inline logo
+
+Drop a logo anywhere in a sentence at any width (pixels). Handy for source attributions.
+
+```text
+Source: {% logo "wire.png" "WIRE" 48 %} rating 8.2/10.
+```
+
+**Live:**
+
+Source: {% logo "wire.png" "WIRE" 48 %} rating 8.2/10.
+
+## Aligned images
+
+The `{% img %}` directive gives you caption alignment: `center`, `left`, or `right`.
+
+```text
+{% img "photo.jpg" "The vault, 03:12 AM" center %}
+```
+
+**Live:**
+
+{% img "photo.jpg" "The vault, 03:12 AM" center %}
+
+## The press room
+
+There is a secret route on this board: `#/press`. It isn't linked anywhere. Behind a code (default `ink`, change `PRESS_CODE` in `app.js`) sits a private studio — write Markdown, hit **PREVIEW** to see the file rendered with every component, then **COPY HTML** or **COPY MARKDOWN** to take the code with you.
+
 ## Cheat sheet
 
 | You want | You write |
@@ -481,3 +569,8 @@ Still here, still working: ||spoilers||, ==redactions==, [[023-02|internal links
 | Tooltip | `[text](tooltip: tip)` |
 | Key | `<kbd>Key</kbd>` |
 | Button | `[Label](button[:red\|:ghost]:url)` |
+| Download | `{% download "file.pdf" "Label" %}` |
+| Stars | `{% stars 4.5 %}` or `:stars[4.5]` |
+| Person / movie | `:::person [round]` / `:::movie` … `:::` |
+| Logo | `{% logo "wire.png" "WIRE" 48 %}` |
+| Aligned image | `{% img "photo.jpg" "Caption" center %}` |
