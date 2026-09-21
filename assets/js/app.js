@@ -52,7 +52,7 @@ function applyTheme(name, save = true) {
   if (tl) tl.textContent = THEME_META[name].label;
   $("#themeBtn").setAttribute("aria-label", `Theme: ${name}. Activate to switch.`);
   const tag = $("#buildTag");
-  if (tag) tag.textContent = `BUILD: v024.3 // ${name.toUpperCase()} ACTIVE`;
+  if (tag) tag.textContent = `BUILD: v024.4 // ${name.toUpperCase()} ACTIVE`;
   if (save) { try { localStorage.setItem("dossier-theme", name); } catch (_) {} }
 }
 /** v1 theme-switch glitch: shake the page + white flash. */
@@ -730,6 +730,29 @@ function bindArticleInteractions(root) {
   }
 }
 
+/* ───────── reading progress bar (dossier view only) ───────── */
+function initReadProgress() {
+  const wrap = $("#readProgress"), bar = $("#readProgressBar");
+  if (!wrap || !bar) return;
+  let ticking = false;
+  const update = () => {
+    ticking = false;
+    const inFile = !$("#view-file").hidden;
+    wrap.classList.toggle("is-on", inFile);
+    if (!inFile) return;
+    const h = document.documentElement;
+    const max = h.scrollHeight - h.clientHeight;
+    const y = window.scrollY || h.scrollTop || 0;
+    bar.style.width = (max > 0 ? Math.min(100, (y / max) * 100) : 0) + "%";
+  };
+  window.addEventListener("scroll", () => {
+    if (!ticking) { ticking = true; requestAnimationFrame(update); }
+  }, { passive: true });
+  window.addEventListener("hashchange", () => setTimeout(update, 50));
+  window.addEventListener("resize", update);
+  update();
+}
+
 /* ───────── router ───────── */
 function setTab(name) {
   document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("is-active", t.dataset.tab === name));
@@ -749,6 +772,7 @@ async function route() {
 async function boot() {
   initTheme();
   datelineInit();
+  initReadProgress();
   try {
     const manifest = await getJSON(POSTS_BASE + "manifest.json");
     POSTS = (manifest.posts || [])

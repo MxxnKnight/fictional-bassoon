@@ -223,6 +223,11 @@ a { color: inherit; }
 .nameplate__tag { display: block; margin-top: 12px; font-family: var(--mono); font-size: 10px; letter-spacing: .34em; color: var(--ink-soft); }
 .rule-double { border-top: 3px solid var(--line-strong); height: 6px; border-bottom: 1px solid var(--line-strong); }
 
+/* reading progress — thin bar, dossier view only */
+.read-progress { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 200; pointer-events: none; opacity: 0; transition: opacity .25s; }
+.read-progress.is-on { opacity: 1; }
+.read-progress i { display: block; height: 100%; width: 0; background: var(--accent); }
+
 /* single compact theme button — small low-contrast circle, icon only */
 .theme-btn {
   display: inline-flex; align-items: center; justify-content: center;
