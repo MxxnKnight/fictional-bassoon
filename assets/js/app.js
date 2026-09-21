@@ -773,7 +773,7 @@ function postprocessHTML(html, ctx) {
   html = html.replace(/(?:<p>)?@@DIVIDER@@(?:<\/p>)?/g,
     `<div class="divider" aria-hidden="true"><span>◆</span></div>`);
   // code boxes: fenced blocks get a header with language + copy button (flags: bare/color/mono/diff)
-  html = html.replace(/<pre><code class="language-([\w-]+)">([\s\S]*?)<\/code><\/pre>/g, (_, tok, code) => renderCodebox(tok, code));
+  html = html.replace(/<pre><code class="language-([\w][\w=+.~-]*)">([\s\S]*?)<\/code><\/pre>/g, (_, tok, code) => renderCodebox(tok, code));
   html = html.replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/g, (_, code) => renderCodebox("text", code));
   // task lists: this marked build emits plain checkboxes — tag the lists so the custom checklist CSS applies
   html = html.replace(/<ul>(?:(?!<ul>)[\s\S])*?<\/ul>/g, (m) =>
