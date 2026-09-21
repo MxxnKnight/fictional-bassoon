@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=023.9">
+  <link rel="stylesheet" href="assets/css/style.css?v=024.0">
 </head>
 <body>
   <!-- ══════════ TICKER ══════════ -->
@@ -21,23 +21,24 @@
 
   <!-- ══════════ HEADER ══════════ -->
   <header class="masthead">
-    <a class="brand" href="#/board" aria-label="Dossier home">
-      <span class="brand__word">DOSSIER</span>
-      <span class="brand__stamp">FILE<br>STAMP</span>
-      <span class="brand__no">/ NO_023</span>
-    </a>
-    <div class="masthead__right">
-      <span class="masthead__meta" id="fileCount"></span>
-      <button class="theme-btn" id="themeBtn" aria-label="Switch theme" title="Switch theme">
+    <div class="dateline-bar">
+      <span id="todayDate">—</span>
+      <span class="dateline-bar__edition" id="editionLabel">MORNING EDITION</span>
+      <button class="theme-btn theme-btn--slim" id="themeBtn" aria-label="Switch theme" title="Switch theme">
         <span class="theme-btn__icon" id="themeIcon">☀</span>
         <span class="theme-btn__label" id="themeLabel">LIGHT</span>
       </button>
     </div>
+    <a class="nameplate" href="#/board" aria-label="Dossier home">
+      <span class="nameplate__title">The Dossier</span>
+      <span class="nameplate__tag">EVERY FILE. EVERY WIRE. NO NOISE.</span>
+    </a>
+    <div class="rule-double" aria-hidden="true"></div>
   </header>
 
   <!-- ══════════ TABS ══════════ -->
   <nav class="tabs" aria-label="Sections">
-    <a class="tab is-active" href="#/board" data-tab="board"><span class="tab__dot"></span>BOARD VIEW</a>
+    <a class="tab is-active" href="#/board" data-tab="board"><span class="tab__dot"></span>FRONT PAGE</a>
     <a class="tab" href="#/publish" data-tab="publish"><span class="tab__dot"></span>EDITOR / PUBLISH</a>
     <span class="tabs__meta">EDITORIAL PAPER // FILE NO_023</span>
   </nav>
@@ -45,24 +46,27 @@
   <!-- ══════════ VIEWS ══════════ -->
   <main id="app">
     <!-- BOARD -->
-    <section id="view-board" class="view">
-      <div class="board-head">
-        <div>
-          <h1 class="board-title">INVESTIGATION<br>BOARD</h1>
-          <p class="board-sub"><span id="activeCount"></span> ACTIVE FILES &nbsp;•&nbsp; LAST UPDATE: <span id="lastUpdate"></span> &nbsp;<span class="chip chip--verified">VERIFIED</span></p>
-        </div>
-        <p class="board-note">THIS BOARD IS A WORKING DOCUMENT. FILES ARE CONNECTED WITH RED STRING (METAPHORICALLY). BRUTALISM MODE REMOVES ALL SOFTNESS.</p>
+    <section id="view-board" class="view view--front">
+      <div class="frontpage-head frontpage-head--top">
+        <span class="section-label">TOP STORY</span>
+        <span class="section-meta" id="todayShort"></span>
+      </div>
+      <div id="heroSlot"></div>
+      <div class="frontpage-head">
+        <span class="section-label">THE LATEST</span>
+        <span class="section-meta"><span id="activeCount"></span> FILES ON RECORD</span>
       </div>
       <div class="searchrow">
         <input class="search" id="searchInput" type="search" placeholder="SEARCH FILES, TAGS, SOURCES…" aria-label="Search files">
       </div>
-      <div class="grid" id="cardGrid"></div>
+      <div class="newslist" id="cardGrid"></div>
+      <p class="newsnote">THE BOARD IS A WORKING DOCUMENT. FILES ARE ORDERED BY FILE NUMBER — NEW LEADS SINK UNTIL VERIFIED.</p>
     </section>
 
     <!-- DOSSIER (article) -->
     <section id="view-file" class="view" hidden>
       <div class="dossier-topbar">
-        <a class="back-btn" href="#/board">← BOARD</a>
+        <a class="back-btn" href="#/board">← FRONT PAGE</a>
         <span class="dossier-topbar__file" id="dossierFileNo"></span>
       </div>
       <article class="dossier" id="dossierArticle"></article>
@@ -90,7 +94,7 @@
           <li><code>:::timeline</code> — vertical incident timeline</li>
           <li><code>{% youtube ID %}</code> / <code>{% video %}</code> / <code>{% audio %}</code> — embeds &amp; themed player</li>
           <li><code>```lang</code> — code box with copy button</li>
-          <li><code>:::box</code>, <code>:::tabs</code>, <code>:::collapse</code>, <code>:::section</code> — structured blocks</li>
+          <li><code>:::box</code>, <code>:::stat</code>, <code>:::tabs</code>, <code>:::collapse</code>, <code>:::section</code> — structured blocks</li>
           <li><code>&gt; [!NOTE]</code> — alert boxes (note, tip, important, warning, caution)</li>
           <li><code>:badge[]</code> <code>:tag[]</code> — badges &amp; tags</li>
           <li><code>:hl[]</code> — marker text highlights</li>
@@ -110,8 +114,8 @@
     <span id="buildTag">BUILD: v023.5</span>
   </footer>
 
-  <script src="assets/js/marked.min.js?v=023.9"></script>
+  <script src="assets/js/marked.min.js?v=024.0"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <script src="assets/js/app.js?v=023.9"></script>
+  <script src="assets/js/app.js?v=024.0"></script>
 </body>
 </html>

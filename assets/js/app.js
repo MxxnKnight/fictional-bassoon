@@ -51,7 +51,7 @@ function applyTheme(name, save = true) {
   $("#themeLabel").textContent = THEME_META[name].label;
   $("#themeBtn").setAttribute("aria-label", `Theme: ${name}. Activate to switch.`);
   const tag = $("#buildTag");
-  if (tag) tag.textContent = `BUILD: v023.9 // ${name.toUpperCase()} ACTIVE`;
+  if (tag) tag.textContent = `BUILD: v024.0 // ${name.toUpperCase()} ACTIVE`;
   if (save) { try { localStorage.setItem("dossier-theme", name); } catch (_) {} }
 }
 /** v1 theme-switch glitch: shake the page + white flash. */
@@ -533,16 +533,29 @@ function stampClass(type) {
   return "";
 }
 
-function cardHTML(p) {
-  const tags = (p.tags || []).map((t) => `<span class="tag">#${esc(t)}</span>`).join("");
-  return `<a class="card" href="#/file/${p.id}">
-    <div class="card__top">
-      <span class="stamp ${stampClass(p.type)}">${esc((p.type || "FILE").toUpperCase())} // ${esc(p.fileNo)}</span>
-      <span class="card__go" aria-hidden="true">↗</span>
-    </div>
-    <h2 class="card__title">${esc(p.title)}</h2>
-    <p class="card__sum">${esc(p.summary || "")}</p>
-    <div class="card__tags">${tags}</div>
+/* ───────── front page ───────── */
+function kickerHTML(type) {
+  const t = String(type || "FILE").toUpperCase();
+  return `<span class="kicker${t === "LEAK" ? " kicker--red" : ""}">${esc(t)}</span>`;
+}
+
+function heroHTML(p) {
+  const img = p.image ? `<div class="hero__img"><img src="${esc(p.image)}" alt="" loading="lazy"></div>` : "";
+  return `<a class="hero" href="#/file/${p.id}">
+    ${img}
+    <div class="hero__kicker">${kickerHTML(p.type)}<span class="hero__fileno">FILE ${esc(p.fileNo)}</span></div>
+    <h2 class="hero__title">${esc(p.title)}</h2>
+    <p class="hero__stand">${esc(p.summary || "")}</p>
+    <div class="hero__meta"><span>BY ${esc(p.author || "DOSSIER DESK")}</span><span>${esc(p.date || "")}</span><span class="hero__cta">READ THE FILE →</span></div>
+  </a>`;
+}
+
+function newsrowHTML(p) {
+  return `<a class="newsrow" href="#/file/${p.id}">
+    <div class="newsrow__kicker">${kickerHTML(p.type)}<span class="newsrow__fileno">${esc(p.fileNo)}</span></div>
+    <h2 class="newsrow__title">${esc(p.title)}</h2>
+    <p class="newsrow__sum">${esc(p.summary || "")}</p>
+    <div class="newsrow__meta"><span>${esc(p.date || "")}</span><span>BY ${esc(p.author || "DOSSIER DESK")}</span></div>
   </a>`;
 }
 
@@ -552,18 +565,31 @@ function renderBoard(filter = "") {
     if (!q) return true;
     return [p.title, p.summary, p.fileNo, p.type, (p.tags || []).join(" ")].join(" ").toLowerCase().includes(q);
   });
-  const grid = $("#cardGrid");
-  grid.innerHTML = list.length
-    ? list.map(cardHTML).join("") +
-      `<div class="card card--note" aria-hidden="true">
-         <h2 class="card__title">SYSTEM NOTE</h2>
-         <p class="card__sum">Board is sorted by file number, not recency. Newest leaks sink to bottom until verified. Click any file to open dossier.</p>
-       </div>`
-    : `<p class="empty">NO FILES MATCH “${esc(filter)}”. TRY ANOTHER QUERY.</p>`;
+  const heroSlot = $("#heroSlot");
+  if (!q && POSTS.length) {
+    heroSlot.innerHTML = heroHTML(POSTS[0]);
+    heroSlot.hidden = false;
+  } else {
+    heroSlot.innerHTML = "";
+    heroSlot.hidden = true;
+  }
+  const rows = (!q && POSTS.length ? list.slice(1) : list).map(newsrowHTML).join("");
+  $("#cardGrid").innerHTML = rows ||
+    `<p class="empty">NO FILES MATCH “${esc(filter)}”. TRY ANOTHER QUERY.</p>`;
   $("#activeCount").textContent = POSTS.length;
-  $("#fileCount").textContent = `${POSTS.length} FILES`;
-  // newest file number carries the latest update
-  $("#lastUpdate").textContent = POSTS.length ? POSTS[0].date || "—" : "—";
+}
+
+/** Dateline bar: live date + edition that follows the clock. */
+function datelineInit() {
+  const d = new Date();
+  const dateEl = $("#todayDate");
+  if (dateEl) dateEl.textContent = d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const h = d.getHours();
+  const ed = h < 12 ? "MORNING EDITION" : h < 17 ? "AFTERNOON EDITION" : h < 21 ? "EVENING EDITION" : "LATE EDITION";
+  const edEl = $("#editionLabel");
+  if (edEl) edEl.textContent = ed;
+  const short = $("#todayShort");
+  if (short) short.textContent = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }).toUpperCase();
 }
 
 /* ───────── dossier view ───────── */
@@ -577,7 +603,7 @@ async function renderFile(id) {
   const post = POSTS.find((p) => p.id === id);
   const article = $("#dossierArticle");
   if (!post) {
-    article.innerHTML = `<p class="empty">FILE NOT FOUND. <a href="#/board">RETURN TO BOARD</a>.</p>`;
+    article.innerHTML = `<p class="empty">FILE NOT FOUND. <a href="#/board">RETURN TO FRONT PAGE</a>.</p>`;
     return;
   }
   $("#dossierFileNo").textContent = `FILE // ${post.fileNo}`;
@@ -590,6 +616,7 @@ async function renderFile(id) {
     const byline = meta.author || post.author || "DOSSIER DESK";
     const tags = (meta.tags && meta.tags.length ? meta.tags : post.tags || [])
       .map((t) => `<span class="tag">#${esc(String(t))}</span>`).join(" ");
+    const mins = Math.max(1, Math.round(src.split(/\s+/).filter(Boolean).length / 200));
     article.innerHTML = `
       ${meta.dateline ? `<span class="dateline">${esc(meta.dateline)}</span>` : ""}
       <div class="dossier__kicker">
@@ -598,13 +625,13 @@ async function renderFile(id) {
       </div>
       <h1 class="dossier__title">${esc(meta.title || post.title)}</h1>
       ${meta.standfirst ? `<p class="dossier__standfirst">${esc(meta.standfirst)}</p>` : ""}
-      <div class="dossier__byline"><span>BY ${esc(byline)}</span>${date ? `<span>// ${esc(date)}</span>` : ""}<span>// ${tags}</span></div>
+      <div class="dossier__byline"><span>BY ${esc(byline)}</span>${date ? `<span>// ${esc(date)}</span>` : ""}<span>// ${mins} MIN READ</span><span>// ${tags}</span></div>
       ${tocHTML(headings)}
       <div class="dossier__body">${html}</div>`;
     bindArticleInteractions(article);
     window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
   } catch (e) {
-    article.innerHTML = `<p class="empty">COULD NOT OPEN FILE ${esc(post.fileNo)}.<br><span style="font-size:11px">${esc(e.message)}</span><br><br><a href="#/board">← RETURN TO BOARD</a></p>`;
+    article.innerHTML = `<p class="empty">COULD NOT OPEN FILE ${esc(post.fileNo)}.<br><span style="font-size:11px">${esc(e.message)}</span><br><br><a href="#/board">← RETURN TO FRONT PAGE</a></p>`;
   }
 }
 
@@ -682,6 +709,7 @@ async function route() {
 /* ───────── boot ───────── */
 async function boot() {
   initTheme();
+  datelineInit();
   try {
     const manifest = await getJSON(POSTS_BASE + "manifest.json");
     POSTS = (manifest.posts || [])
