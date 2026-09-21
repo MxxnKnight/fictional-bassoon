@@ -629,15 +629,25 @@ The claim that the grid failed twice is unsupported by the logs.
 
 `||the butler did it||` is the classic black bar. Add a tilde — `||~the gardener helped||` — and the text renders blurred instead. Both reveal on tap or click.
 
-## Code boxes: bare, flags, color, diff
+## Code boxes: editor chrome, flags, diff
 
-A fenced block takes flags after the language: `bare`, `color`, `mono`, `diff`.
+Every fenced block renders as an editor-style code box — dark surface, JetBrains Mono, and a popular syntax palette — identical in light, dark, and brutalism. The header shows the language (or a filename), with a collapse chevron and a copy button inside.
+
+Add `file=name.ext` after the language to show a filename in the header, like an IDE tab:
+
+```py file=bubble_sort.py
+def bubble_sort(items):
+    for i in range(len(items)):
+        for j in range(len(items) - 1 - i):
+            if items[j] > items[j + 1]:
+                items[j], items[j + 1] = items[j + 1], items[j]
+```
+
+Flags after the language: `bare` (no header bar — tap inside the box and the copy button appears), `mono` (force monochrome), `diff` (paints `+`/`-`/`@@` lines). `color` is kept for back-compat; color is the default everywhere now.
 
 ```js bare
 const quiet = true; // no header bar — tap inside the box and the COPY button appears
 ```
-
-`color` forces syntax colors on (useful in light/dark, where boxes are monochrome by default). `mono` forces monochrome. Color is **on by default in brutalism**. The `diff` language (or flag) paints `+`/`-`/`@@` lines:
 
 ```diff
 + added line
@@ -690,7 +700,7 @@ Lens | 800 g | No
 | Audio | `{% audio src="…" %}` |
 | YouTube | `{% youtube VIDEO_ID %}` |
 | Iframe | `{% embed URL %}` |
-| Code box + copy | fenced ` ```lang ` block |
+| Code box + copy | fenced ` ```lang ` block, `file=name.ext` for a filename header |
 | Box | `:::box [red\|ghost] Title` … `:::` |
 | Stat callout | `:::stat [red\|ghost]` … number … label … `:::` |
 | Tabbed tables | `:::tabs` … `## Tab` … `:::` |
@@ -719,7 +729,7 @@ Lens | 800 g | No
 | TL;DR | `:::tldr` … `:::` |
 | Fact check | `:::factcheck TRUE\|FALSE\|MIXED` … `:::` |
 | Blur spoiler | `||~text||` (drop the tilde for the black bar) |
-| Bare code box | ` ```js bare ` — no header, COPY appears on tap inside |
+| Bare code box | ` ```js bare ` — no header, copy appears on tap inside |
 | Code flags | ` ```js color ` / ` ```js mono ` / ` ```diff ` |
 | Tabbed code | `:::codetabs` … `## npm` + fenced block … `:::` |
 | X/Twitter embed | `{% tweet "URL" %}` or `{% x "URL" %}` |

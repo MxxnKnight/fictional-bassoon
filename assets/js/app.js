@@ -609,24 +609,34 @@ function paintDiff(code) {
 }
 
 /** Flag-aware code box. Flags: bare (no header, copy on click), color, mono, diff. */
+/* editor-chrome icons for code boxes */
+const SVG_CHEV = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>`;
+const SVG_COPY = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+const SVG_CHECK = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>`;
+const SVG_FILE = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>`;
+
 function renderCodebox(langToken, code) {
   const parts = String(langToken || "text").split("__");
   const lang = parts[0] || "text";
-  const flags = new Set(parts.slice(1).map((f) => f.toLowerCase()));
+  const rawFlags = parts.slice(1);
+  const flags = new Set(rawFlags.map((f) => f.toLowerCase()));
   if (lang === "mermaid") return renderDiagram(code); // diagrams, not code
   const isDiff = flags.has("diff") || lang === "diff" || lang === "patch";
-  let color = flags.has("color") || isDiff || themeNow() === "brutalism";
-  if (flags.has("mono")) color = false;
+  const mono = flags.has("mono") && !isDiff; // syntax color is the default now; `color` kept for back-compat
   const bare = flags.has("bare");
+  let file = "";
+  rawFlags.forEach((f) => { const m = /^file=(.+)$/i.exec(f); if (m) file = m[1]; });
   let codeHtml = code;
-  if (isDiff && color) codeHtml = paintDiff(code);
-  const cls = "codebox" + (bare ? " codebox--bare" : "");
-  const colorAttr = color ? " data-codecolor" : "";
-  const bar = bare
-    ? `<button class="codebox__copy codebox__copy--float" type="button" data-copy aria-label="Copy code">COPY</button>`
-    : `<div class="codebox__bar"><span class="codebox__lang">${esc(lang.toUpperCase())}</span><button class="codebox__copy" type="button" data-copy>COPY</button></div>`;
+  if (isDiff) codeHtml = paintDiff(code);
+  const label = file || lang.toUpperCase();
+  const bar = bare ? "" :
+    `<div class="codebox__bar"><span class="codebox__file">${file ? SVG_FILE : ""}<span>${esc(label)}</span></span>` +
+    `<span class="codebox__actions"><button class="codebox__iconbtn codebox__fold" type="button" data-fold aria-label="Collapse code">${SVG_CHEV}</button>` +
+    `<button class="codebox__iconbtn" type="button" data-copy aria-label="Copy code">${SVG_COPY}</button></span></div>`;
+  const floatCopy = bare ? `<button class="codebox__iconbtn codebox__copy--float" type="button" data-copy aria-label="Copy code">${SVG_COPY}</button>` : "";
+  const cls = "codebox" + (bare ? " codebox--bare" : "") + (mono ? " codebox--mono" : "");
   const tab = bare ? ` tabindex="0"` : "";
-  return `<div class="${cls}"${colorAttr}${tab}>${bar}<pre><code class="language-${esc(lang)}">${codeHtml}</code></pre></div>`;
+  return `<div class="${cls}" data-lang="${esc(lang)}"${tab}>${bar}${floatCopy}<div class="codebox__body"><pre><code class="language-${esc(lang)}">${codeHtml}</code></pre></div>`;
 }
 
 /** First fenced block inside a markdown fragment. */
@@ -734,7 +744,7 @@ function postprocessHTML(html, ctx) {
     if (kind === "tabs") return renderTabs(body);
     if (kind === "codetabs") return renderCodeTabs(body);
     if (kind === "table") return renderTable(args, body);
-    if (kind === "collapse") return `<details class="collapse"><summary>${esc(args) || "DETAILS"}</summary><div class="collapse__body">${renderInner(body)}</div></details>`;
+    if (kind === "collapse") return `<details class="collapse"><summary><span>${esc(args) || "DETAILS"}</span>${SVG_CHEV}</summary><div class="collapse__body">${renderInner(body)}</div></details>`;
     if (kind === "box") return renderBox(args, body);
     if (kind === "stat") return renderStat(args, body);
     if (kind === "bar") return renderBarChart(args, body);
@@ -1023,7 +1033,7 @@ function bindArticleInteractions(root) {
       if (!was) el.classList.add("show-tip");
     });
   });
-  // codebox copy buttons
+  // codebox copy buttons (icon buttons inside the header)
   root.querySelectorAll("[data-copy]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const code = btn.closest(".codebox")?.querySelector("code");
@@ -1038,9 +1048,17 @@ function bindArticleInteractions(root) {
         try { document.execCommand("copy"); } catch (_) {}
         ta.remove();
       }
-      const old = btn.textContent;
-      btn.textContent = "COPIED ✓";
-      setTimeout(() => { btn.textContent = old; }, 1400);
+      const old = btn.innerHTML;
+      btn.innerHTML = SVG_CHECK;
+      btn.classList.add("is-copied");
+      setTimeout(() => { btn.innerHTML = old; btn.classList.remove("is-copied"); }, 1400);
+    });
+  });
+  // codebox fold buttons (collapse the code body)
+  root.querySelectorAll("[data-fold]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const box = btn.closest(".codebox");
+      if (box) box.classList.toggle("is-folded");
     });
   });
   // tabbed tables / tabbed content
@@ -1059,13 +1077,14 @@ function bindArticleInteractions(root) {
   // custom video players
   root.querySelectorAll("[data-vplayer]").forEach(setupPlayer);
   // syntax colors for code boxes (highlight.js, loaded lazily on first use)
-  const colorBlocks = [...root.querySelectorAll(".codebox[data-codecolor] pre code[class^='language-']")];
+  const colorBlocks = [...root.querySelectorAll(".codebox:not(.codebox--mono) pre code[class^='language-']")];
   const paintColor = () => {
     colorBlocks.forEach((el) => {
       if (el.querySelector(".df-add, .df-del")) return; // diff already painted
+      if (el.dataset.hlDone) return;
       const m = el.className.match(/language-([\w-]+)/);
       if (!m || !window.hljs || !window.hljs.getLanguage(m[1])) return;
-      try { window.hljs.highlightElement(el); } catch (_) {}
+      try { window.hljs.highlightElement(el); el.dataset.hlDone = "1"; } catch (_) {}
     });
   };
   if (colorBlocks.length) {
