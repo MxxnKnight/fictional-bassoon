@@ -536,6 +536,17 @@ A gripping thriller about a man who will do anything to protect his family.
 
 Fence a block as `mermaid` and it renders as a diagram instead of code — flowcharts, sequence diagrams, class diagrams, and more. The library loads only when a diagram is on the page.
 
+**Code:**
+
+    ```mermaid
+    flowchart TD
+        A[Story breaks] --> B{Verified?}
+        B -->|Yes| C[Publish]
+        B -->|No| D[Hold for desk]
+    ```
+
+**Live:**
+
 ```mermaid
 flowchart TD
     A[Story breaks] --> B{Verified?}

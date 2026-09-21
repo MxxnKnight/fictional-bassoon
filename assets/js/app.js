@@ -1150,12 +1150,78 @@ function initToTop() {
 
 /* ───────── the press room — secret route (#/press): draft, preview, copy ───────── */
 let pressBooted = false;
+/* ▮ marks where the cursor lands; {{sel}} wraps the selected text. */
+const PRESS_SNIPPETS = [
+  { g: "TEXT", items: [
+    ["H1", "\n# ▮\n"], ["H2", "\n## ▮\n"], ["H3", "\n### ▮\n"],
+    ["B", "**{{sel}}▮**"], ["I", "*{{sel}}▮*"], ["S", "~~{{sel}}▮~~"],
+    ["Link", "[{{sel}}▮](https://)"], ["Image", "![alt▮](image.jpg)"],
+    ["Quote", "\n> ▮\n"], ["List", "\n- ▮\n- \n"], ["Tasks", "\n- [ ] ▮\n- [ ] \n"],
+    ["Kbd", ":kbd[▮]"], ["Badge", ":badge[▮]"], ["Tag", ":tag[▮]"], ["HR", "\n***\n"],
+  ]},
+  { g: "HIDE", items: [
+    ["Spoiler", "||{{sel}}▮||"], ["Blur", "||~{{sel}}▮~||"],
+  ]},
+  { g: "CODE", items: [
+    ["Block", "```js\n▮\n```"], ["Bare", "```text bare\n▮\n```"],
+    ["Diff", "```diff\n▮\n```"], ["Color", "```js color\n▮\n```"], ["Mono", "```js mono\n▮\n```"],
+    ["Code tabs", ":::codetabs\n## npm\n```bash\n▮\n```\n## yarn\n```bash\n\n```\n:::"],
+    ["Diagram", "```mermaid\nflowchart TD\n    A[▮] --> B\n```"],
+  ]},
+  { g: "BOXES", items: [
+    ["Table", ":::table Caption\nItem | Qty\nA | 1\n▮\n:::"],
+    ["Bar", ":::bar\nLabel — 40\n▮\n:::"],
+    ["Pie", ":::pie\nA — 30\nB — 70\n▮\n:::"],
+    ["Tabs", ":::tabs\n## Tab 1\n▮\n## Tab 2\n\n:::"],
+    ["Collapse", ":::collapse Title\n▮\n:::"],
+    ["Section", ":::section\n▮\n:::"],
+    ["Box", ":::box\n▮\n:::"],
+    ["Notice", ":::notice\n▮\n:::"],
+    ["TL;DR", ":::tldr\n▮\n:::"],
+    ["Editor", ":::editor\n▮\n:::"],
+    ["Correction", ":::correction\n▮\n:::"],
+    ["Update", ":::update\n▮\n:::"],
+    ["Factcheck", ":::factcheck true\n▮\n:::"],
+  ]},
+  { g: "MEDIA", items: [
+    ["Video", "{% video \"▮\" %}"], ["Audio", "{% audio \"▮\" %}"],
+    ["YouTube", "{% youtube \"▮\" %}"], ["Embed", "{% embed \"▮\" %}"],
+    ["Download", "{% download \"▮\" %}"], ["Tweet", "{% tweet \"▮\" %}"],
+    ["Reddit", "{% reddit \"▮\" %}"], ["Logo", "{% logo \"▮\" 120 %}"],
+    ["Stars", ":stars[▮]"],
+  ]},
+  { g: "CARDS", items: [
+    ["Person", ":::person\n![Name▮](photo.jpg)\n**Name** — Role\n:::"],
+    ["Movie", ":::movie\n![Poster](poster.jpg)\nTitle▮\nDirector: \nYear: \nBox office: $\n:::"],
+  ]},
+];
+function pressInsert(ta, tpl, rerender) {
+  const s = ta.selectionStart == null ? ta.value.length : ta.selectionStart;
+  const e = ta.selectionEnd == null ? ta.value.length : ta.selectionEnd;
+  const sel = ta.value.slice(s, e);
+  let text = tpl.split("{{sel}}").join(sel);
+  const mark = text.indexOf("▮");
+  text = text.replace("▮", "");
+  ta.value = ta.value.slice(0, s) + text + ta.value.slice(e);
+  const pos = mark === -1 ? s + text.length : s + mark;
+  try { ta.selectionStart = ta.selectionEnd = pos; } catch (_) {}
+  ta.focus();
+  rerender();
+}
 function initPressRoom() {
   if (pressBooted) return;
   pressBooted = true;
   const gate = $("#pressGate"), studio = $("#pressStudio");
   if (!gate || !studio) return;
-  const open = () => { gate.hidden = true; studio.hidden = false; };
+  const input = $("#pressInput"), previewBody = $("#pressPreviewBody");
+  let pTimer = null;
+  const renderPreview = () => {
+    if (!input || !previewBody) return;
+    previewBody.innerHTML = renderInner(input.value) || `<p class="empty">NOTHING TO PREVIEW YET.</p>`;
+    bindArticleInteractions(previewBody);
+  };
+  const queuePreview = () => { clearTimeout(pTimer); pTimer = setTimeout(renderPreview, 250); };
+  const open = () => { gate.hidden = true; studio.hidden = false; queuePreview(); };
   try { if (sessionStorage.getItem("dossier_press") === "1") open(); } catch (_) {}
   const form = $("#pressGateForm");
   if (form) form.addEventListener("submit", (e) => {
@@ -1169,20 +1235,31 @@ function initPressRoom() {
       if (err) err.hidden = false;
     }
   });
-  const input = $("#pressInput"), preview = $("#pressPreview"), previewBody = $("#pressPreviewBody"), prevBtn = $("#pressPreviewBtn");
-  if (!input || !preview || !previewBody || !prevBtn) return;
-  let showing = false;
-  const renderPreview = () => {
-    previewBody.innerHTML = renderInner(input.value) || `<p class="empty">NOTHING TO PREVIEW YET.</p>`;
-    bindArticleInteractions(previewBody);
-  };
-  prevBtn.addEventListener("click", () => {
-    showing = !showing;
-    if (showing) renderPreview();
-    preview.hidden = !showing;
-    input.hidden = showing;
-    prevBtn.textContent = showing ? "EDIT" : "PREVIEW";
-  });
+  if (!input || !previewBody) return;
+  // component toolbox: inject snippets at the cursor
+  const toolbox = $("#pressToolbox");
+  if (toolbox && !toolbox.dataset.built) {
+    toolbox.dataset.built = "1";
+    PRESS_SNIPPETS.forEach((grp) => {
+      const g = document.createElement("div");
+      g.className = "toolbox__group";
+      const lab = document.createElement("span");
+      lab.className = "toolbox__label";
+      lab.textContent = grp.g;
+      g.appendChild(lab);
+      grp.items.forEach(([name, tpl]) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "toolbox__btn";
+        b.textContent = name;
+        b.title = "Insert " + name;
+        b.addEventListener("click", () => pressInsert(input, tpl, queuePreview));
+        g.appendChild(b);
+      });
+      toolbox.appendChild(g);
+    });
+  }
+  input.addEventListener("input", queuePreview);
   const flash = (btn, ok) => {
     const old = btn.textContent;
     btn.textContent = ok ? "COPIED ✓" : "COPY FAILED";
@@ -1190,7 +1267,7 @@ function initPressRoom() {
   };
   const copyBtn = $("#pressCopyHtml");
   if (copyBtn) copyBtn.addEventListener("click", async (e) => {
-    if (!showing) renderPreview();
+    renderPreview();
     flash(e.currentTarget, await copyText(previewBody.innerHTML));
   });
   const copyMd = $("#pressCopyMd");
@@ -1200,7 +1277,7 @@ function initPressRoom() {
   const clearBtn = $("#pressClear");
   if (clearBtn) clearBtn.addEventListener("click", () => {
     input.value = "";
-    if (showing) renderPreview();
+    renderPreview();
     input.focus();
   });
 }

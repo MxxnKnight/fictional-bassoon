@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=Noto+Sans+Malayalam:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=024.8">
+  <link rel="stylesheet" href="assets/css/style.css?v=024.9">
 </head>
 <body>
   <div class="read-progress" id="readProgress" aria-hidden="true"><i id="readProgressBar"></i></div>
@@ -128,17 +128,19 @@
         </div>
         <div class="pressroom__studio" id="pressStudio" hidden>
           <h1 class="pressroom__title">PRESS ROOM <span class="chip">PRIVATE</span></h1>
-          <p class="publish__lede">Draft in Markdown. Preview the file. Copy the code.</p>
+          <p class="publish__lede">Draft in Markdown. The preview updates as you type.</p>
           <div class="pressroom__tools">
-            <button class="btn-press" id="pressPreviewBtn" type="button">PREVIEW</button>
             <button class="btn-press" id="pressCopyHtml" type="button">COPY HTML</button>
             <button class="btn-press" id="pressCopyMd" type="button">COPY MARKDOWN</button>
             <button class="btn-press btn-press--ghost" id="pressClear" type="button">CLEAR</button>
           </div>
+          <div class="toolbox" id="pressToolbox" aria-label="Component toolbox"></div>
           <textarea class="pressroom__input" id="pressInput" placeholder="Write your file here… (Markdown, all components work)"></textarea>
-          <div class="pressroom__preview dossier" id="pressPreview" hidden>
+          <div class="pressroom__live" aria-label="Live preview">
+            <div class="pressroom__livehead">LIVE PREVIEW</div>
             <div class="dossier__body" id="pressPreviewBody"></div>
           </div>
+        </div>
         </div>
       </div>
     </section>
@@ -146,13 +148,13 @@
 
   <footer class="footer">
     <span>THE DOSSIER // A BRUTALIST NEWS SYSTEM // NO TRACKERS // NO ADS // JUST FILES</span>
-    <span id="buildTag">BUILD: v024.8</span>
+    <span id="buildTag">BUILD: v024.9</span>
   </footer>
 
   <button class="to-top" id="toTop" aria-label="Back to top" title="Back to top">↑</button>
 
-  <script src="assets/js/marked.min.js?v=024.8"></script>
+  <script src="assets/js/marked.min.js?v=024.9"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <script src="assets/js/app.js?v=024.8"></script>
+  <script src="assets/js/app.js?v=024.9"></script>
 </body>
 </html>
