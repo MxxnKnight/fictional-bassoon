@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=024.2">
+  <link rel="stylesheet" href="assets/css/style.css?v=024.3">
 </head>
 <body>
   <!-- ══════════ TICKER ══════════ -->
@@ -24,9 +24,8 @@
     <div class="dateline-bar">
       <span id="todayDate">—</span>
       <span class="dateline-bar__edition" id="editionLabel">MORNING EDITION</span>
-      <button class="theme-btn theme-btn--slim" id="themeBtn" aria-label="Switch theme" title="Switch theme">
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme" title="Switch theme">
         <span class="theme-btn__icon" id="themeIcon">☀</span>
-        <span class="theme-btn__label" id="themeLabel">LIGHT</span>
       </button>
     </div>
     <a class="nameplate" href="#/board" aria-label="Dossier home">
@@ -47,6 +46,7 @@
   <main id="app">
     <!-- BOARD -->
     <section id="view-board" class="view view--front">
+      <div id="pinnedSlot" hidden></div>
       <div class="frontpage-head frontpage-head--top">
         <span class="section-label">TOP STORY</span>
         <span class="section-meta" id="todayShort"></span>
@@ -79,7 +79,7 @@
         <p class="publish__lede">Publishing is a file drop. No CMS. No login. You push a Markdown file, the board picks it up.</p>
         <ol class="publish__steps">
           <li><strong>Write</strong> your piece as <code>.md</code> in the <code>/posts</code> folder of your GitHub repo.</li>
-          <li><strong>Stamp it</strong> — start the file with frontmatter: title, file number, type, date, tags, status.</li>
+          <li><strong>Stamp it</strong> — start the file with frontmatter: title, file number, type, date, tags, status. Optional: <code>image: raid.jpg</code> (front-page thumbnail; a bare filename is read from <code>/posts</code>), <code>pinned: true</code> (pins the file above the top story with a pin badge), and <code>:hl[]</code> highlights work inside titles &amp; summaries.</li>
           <li><strong>List it</strong> — add the filename to <code>/posts/manifest.json</code>.</li>
           <li><strong>Push.</strong> The board fetches from <code>raw.githubusercontent.com</code> on load. Done.</li>
         </ol>
@@ -111,11 +111,11 @@
 
   <footer class="footer">
     <span>THE DOSSIER // A BRUTALIST NEWS SYSTEM // NO TRACKERS // NO ADS // JUST FILES</span>
-    <span id="buildTag">BUILD: v024.1</span>
+    <span id="buildTag">BUILD: v024.3</span>
   </footer>
 
-  <script src="assets/js/marked.min.js?v=024.2"></script>
+  <script src="assets/js/marked.min.js?v=024.3"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <script src="assets/js/app.js?v=024.2"></script>
+  <script src="assets/js/app.js?v=024.3"></script>
 </body>
 </html>

@@ -20,7 +20,7 @@ const THEMES = ["light", "dark", "brutalism"];
 const THEME_META = {
   light:     { icon: "☀", label: "LIGHT" },
   dark:      { icon: "☾", label: "DARK" },
-  brutalism: { icon: "▣", label: "BRUTAL" },
+  brutalism: { icon: "◼", label: "BRUTALISM" },
 };
 
 let POSTS = [];   // manifest entries, newest-first by fileNo desc
@@ -48,10 +48,11 @@ function currentTheme() {
 function applyTheme(name, save = true) {
   document.documentElement.dataset.theme = name;
   $("#themeIcon").textContent = THEME_META[name].icon;
-  $("#themeLabel").textContent = THEME_META[name].label;
+  const tl = $("#themeLabel");
+  if (tl) tl.textContent = THEME_META[name].label;
   $("#themeBtn").setAttribute("aria-label", `Theme: ${name}. Activate to switch.`);
   const tag = $("#buildTag");
-  if (tag) tag.textContent = `BUILD: v024.1 // ${name.toUpperCase()} ACTIVE`;
+  if (tag) tag.textContent = `BUILD: v024.3 // ${name.toUpperCase()} ACTIVE`;
   if (save) { try { localStorage.setItem("dossier-theme", name); } catch (_) {} }
 }
 /** v1 theme-switch glitch: shake the page + white flash. */
@@ -386,9 +387,9 @@ function postprocessHTML(html, ctx) {
     const href = target ? `#/file/${target.id}` : `#/file/${esc(id)}`;
     return `<a class="wiki-link" href="${href}">◈ ${esc(decodeB64(b))}</a>`;
   });
-  // inline: tooltips
+  // inline: tooltips — with an info icon so they read differently from links; tap toggles on touch
   html = html.replace(/@@TIP:([A-Za-z0-9+/=]+):([A-Za-z0-9+/=]+)@@/g, (_, tb, pb) =>
-    `<span class="has-tip" tabindex="0" data-tip="${esc(decodeB64(pb))}">${esc(decodeB64(tb))}</span>`);
+    `<span class="has-tip" tabindex="0" data-tip="${esc(decodeB64(pb))}">${esc(decodeB64(tb))}<span class="has-tip__icon" aria-hidden="true">i</span></span>`);
   // inline: badges & tags
   html = html.replace(/@@BADGE:(badge(?:-red|-ghost)?|tag):([A-Za-z0-9+/=]+)@@/g, (_, kind, b) => {
     const t = esc(decodeB64(b));
@@ -535,46 +536,74 @@ function stampClass(type) {
 }
 
 /* ───────── front page ───────── */
+/** Resolve a manifest image path: absolute/data URLs as-is, bare filenames against the posts base. */
+function resolveImg(src) {
+  const s = String(src || "");
+  if (!s || /^(https?:|data:|\/)/i.test(s)) return s;
+  return POSTS_BASE + s;
+}
+/** Inline highlights inside titles & summaries (:hl[] variants), everything else escaped. */
+function richInline(s) {
+  return esc(String(s ?? ""))
+    .replace(/:hl-(red|blue|green)\[([^\]]+)\]/g, '<mark class="hl hl--$1">$2</mark>')
+    .replace(/:hl\[([^\]]+)\]/g, '<mark class="hl">$1</mark>');
+}
+const PIN_ICON = `<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.6A2.6 2.6 0 1 1 12 6.4a2.6 2.6 0 0 1 0 5.2z"/></svg>`;
+function pinBadgeHTML() {
+  return `<span class="pin-badge">${PIN_ICON}PINNED</span>`;
+}
 function kickerHTML(type) {
   const t = String(type || "FILE").toUpperCase();
   return `<span class="kicker${t === "LEAK" ? " kicker--red" : ""}">${esc(t)}</span>`;
 }
 
 function heroHTML(p) {
-  const img = p.image ? `<div class="hero__img"><img src="${esc(p.image)}" alt="" loading="lazy"></div>` : "";
+  const img = p.image ? `<div class="hero__img"><img src="${esc(resolveImg(p.image))}" alt="" loading="lazy"></div>` : "";
   return `<a class="hero" href="#/file/${p.id}">
     ${img}
-    <div class="hero__kicker">${kickerHTML(p.type)}<span class="hero__fileno">FILE ${esc(p.fileNo)}</span></div>
-    <h2 class="hero__title">${esc(p.title)}</h2>
-    <p class="hero__stand">${esc(p.summary || "")}</p>
+    <div class="hero__kicker">${p.pinned ? pinBadgeHTML() : ""}${kickerHTML(p.type)}<span class="hero__fileno">FILE ${esc(p.fileNo)}</span></div>
+    <h2 class="hero__title">${richInline(p.title)}</h2>
+    <p class="hero__stand">${richInline(p.summary || "")}</p>
     <div class="hero__meta"><span>BY ${esc(p.author || "DOSSIER DESK")}</span><span>${esc(p.date || "")}</span><span class="hero__cta">READ THE FILE →</span></div>
   </a>`;
 }
 
 function newsrowHTML(p) {
-  return `<a class="newsrow" href="#/file/${p.id}">
-    <div class="newsrow__kicker">${kickerHTML(p.type)}<span class="newsrow__fileno">${esc(p.fileNo)}</span></div>
-    <h2 class="newsrow__title">${esc(p.title)}</h2>
-    <p class="newsrow__sum">${esc(p.summary || "")}</p>
+  const thumb = p.image ? `<span class="newsrow__thumb"><img src="${esc(resolveImg(p.image))}" alt="" loading="lazy"></span>` : "";
+  return `<a class="newsrow${thumb ? " newsrow--hasimg" : ""}" href="#/file/${p.id}">
+    ${thumb}
+    <div class="newsrow__main">
+    <div class="newsrow__kicker">${p.pinned ? pinBadgeHTML() : ""}${kickerHTML(p.type)}<span class="newsrow__fileno">${esc(p.fileNo)}</span></div>
+    <h2 class="newsrow__title">${richInline(p.title)}</h2>
+    <p class="newsrow__sum">${richInline(p.summary || "")}</p>
     <div class="newsrow__meta"><span>${esc(p.date || "")}</span><span>BY ${esc(p.author || "DOSSIER DESK")}</span></div>
+    </div>
   </a>`;
 }
 
 function renderBoard(filter = "") {
   const q = filter.trim().toLowerCase();
-  const list = POSTS.filter((p) => {
-    if (!q) return true;
-    return [p.title, p.summary, p.fileNo, p.type, (p.tags || []).join(" ")].join(" ").toLowerCase().includes(q);
-  });
+  const matches = (p) => !q || [p.title, p.summary, p.fileNo, p.type, (p.tags || []).join(" ")].join(" ").toLowerCase().includes(q);
+  const pinned = POSTS.filter((p) => p.pinned && matches(p));
+  const rest = POSTS.filter((p) => !p.pinned && matches(p));
+  const pinnedSlot = $("#pinnedSlot");
+  if (!q && pinned.length) {
+    pinnedSlot.innerHTML = `<div class="frontpage-head frontpage-head--top"><span class="section-label">PINNED</span></div>` +
+      pinned.map(newsrowHTML).join("");
+    pinnedSlot.hidden = false;
+  } else {
+    pinnedSlot.innerHTML = pinned.map(newsrowHTML).join("");
+    pinnedSlot.hidden = !pinned.length;
+  }
   const heroSlot = $("#heroSlot");
-  if (!q && POSTS.length) {
-    heroSlot.innerHTML = heroHTML(POSTS[0]);
+  if (!q && rest.length) {
+    heroSlot.innerHTML = heroHTML(rest[0]);
     heroSlot.hidden = false;
   } else {
     heroSlot.innerHTML = "";
     heroSlot.hidden = true;
   }
-  const rows = (!q && POSTS.length ? list.slice(1) : list).map(newsrowHTML).join("");
+  const rows = (!q && rest.length ? rest.slice(1) : rest).map(newsrowHTML).join("");
   $("#cardGrid").innerHTML = rows ||
     `<p class="empty">NO FILES MATCH “${esc(filter)}”. TRY ANOTHER QUERY.</p>`;
   $("#activeCount").textContent = POSTS.length;
@@ -624,8 +653,8 @@ async function renderFile(id) {
         <span class="stamp ${stampClass(type)}">${esc(String(type).toUpperCase())} // ${esc(post.fileNo)}</span>
         ${meta.status ? `<span class="chip chip--verified">${esc(String(meta.status).toUpperCase())}</span>` : ""}
       </div>
-      <h1 class="dossier__title">${esc(meta.title || post.title)}</h1>
-      ${meta.standfirst ? `<p class="dossier__standfirst">${esc(meta.standfirst)}</p>` : ""}
+      <h1 class="dossier__title">${richInline(meta.title || post.title)}</h1>
+      ${meta.standfirst ? `<p class="dossier__standfirst">${richInline(meta.standfirst)}</p>` : ""}
       <div class="dossier__byline"><span>BY ${esc(byline)}</span>${date ? `<span>// ${esc(date)}</span>` : ""}<span>// ${mins} MIN READ</span><span>// ${tags}</span></div>
       ${tocHTML(headings)}
       <div class="dossier__body">${html}</div>`;
@@ -645,6 +674,15 @@ function bindArticleInteractions(root) {
   root.querySelectorAll("[data-sealed]").forEach((fig) => {
     const btn = fig.querySelector(".sealed__cover");
     if (btn) btn.addEventListener("click", () => fig.classList.add("unsealed"));
+  });
+  // tooltips: tap the info icon (or the text) to open on touch screens
+  root.querySelectorAll(".has-tip").forEach((el) => {
+    el.addEventListener("click", (e) => {
+      e.preventDefault();
+      const was = el.classList.contains("show-tip");
+      root.querySelectorAll(".has-tip.show-tip").forEach((o) => o.classList.remove("show-tip"));
+      if (!was) el.classList.add("show-tip");
+    });
   });
   // codebox copy buttons
   root.querySelectorAll("[data-copy]").forEach((btn) => {

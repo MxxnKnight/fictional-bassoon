@@ -420,7 +420,9 @@ Hover over [this briefing](tooltip: Compiled from three independent sources, cro
 
 **Live:**
 
-Hover over [this briefing](tooltip: Compiled from three independent sources, cross-checked.) to see the tip. On phones, tap it.
+Hover over [this briefing](tooltip: Compiled from three independent sources, cross-checked.) to see the tip. On phones, tap the ⓘ icon.
+
+**Pinning a file:** add `pinned: true` to a file's frontmatter and it stays above the top story with a pin badge. **Front-page images:** `image: raid.jpg` in frontmatter (a bare filename is read from `/posts`) puts a thumbnail on the news row and a banner on the hero. **Title highlights:** `:hl[]` (and `:hl-red[]` etc.) work inside titles and summaries on the front page.
 
 ## Keyboard keys
 
