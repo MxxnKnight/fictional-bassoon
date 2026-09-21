@@ -138,7 +138,7 @@ function decodeB64(s) {
   } catch (_) { return ""; }
 }
 
-const BLOCK_KINDS = new Set(["memo", "pull", "timeline", "tabs", "collapse", "box", "section", "stat", "person", "movie", "bar", "pie", "editor", "correction", "update", "tldr", "factcheck"]);
+const BLOCK_KINDS = new Set(["memo", "pull", "timeline", "tabs", "codetabs", "collapse", "box", "section", "stat", "person", "movie", "bar", "pie", "table", "editor", "correction", "update", "tldr", "factcheck"]);
 
 /** Apply fn only to text outside fenced code blocks, so examples stay literal.
     Closing fence must be at least as long as the opening fence (CommonMark). */
@@ -164,6 +164,8 @@ function outsideCode(md, fn) {
 
 /** Custom inline/block components, pre-marked. Never touches fenced code. */
 function preprocessComponents(md) {
+  md = encodeFenceFlags(md);
+  md = extractCodeTabs(md);
   return outsideCode(md, (chunk) => {
     // shield inline code spans so `{% %}`, tooltips etc. inside them stay literal
     const codes = [];
@@ -194,8 +196,8 @@ function preprocessComponents(md) {
       if (!BLOCK_KINDS.has(kind.toLowerCase())) return _;
       return `\n@@BLOCK:${kind.toLowerCase()}:${b64e(args.trim())}:${b64e(body)}@@\n`;
     });
-    // {% youtube|video|audio|embed ... %} embeds
-    chunk = chunk.replace(/\{%\s*(youtube|video|audio|embed)\s+([^%]*?)%\}/g, (_, kind, args) =>
+    // {% youtube|video|audio|embed|tweet|x|reddit ... %} embeds
+    chunk = chunk.replace(/\{%\s*(youtube|video|audio|embed|tweet|x|reddit)\s+([^%]*?)%\}/g, (_, kind, args) =>
       `@@EMBED:${kind}:${b64e(args.trim())}@@`);
     // {% download|logo|img|stars ... %} inline directives
     chunk = chunk.replace(/\{%\s*(download|logo|img|stars)\s+([^%]*?)%\}/g, (_, kind, args) =>
@@ -375,6 +377,17 @@ function renderEmbed(kind, args) {
     if (!id) return "";
     return `<div class="embed16x9"><iframe src="https://www.youtube-nocookie.com/embed/${id}" title="Embedded video" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
   }
+  if (kind === "tweet" || kind === "x") {
+    const url = args.split(/\s+/)[0].replace(/^["'<]|["'>]$/g, "");
+    if (!/^https?:\/\/(www\.)?(twitter\.com|x\.com)\//.test(url)) return "";
+    const theme = themeNow() === "light" ? "light" : "dark";
+    return `<div class="embed embed--tweet"><blockquote class="twitter-tweet" data-theme="${theme}" data-dnt="true" data-conversation="none"><a href="${esc(url)}">View this post on X</a></blockquote></div>`;
+  }
+  if (kind === "reddit") {
+    const url = args.split(/\s+/)[0].replace(/^["'<]|["'>]$/g, "");
+    if (!/^https?:\/\/(www\.|old\.|new\.)?reddit\.com\//.test(url)) return "";
+    return `<div class="embed embed--reddit"><blockquote class="reddit-embed-bq" data-embed-height="480"><a href="${esc(url)}">View this thread on Reddit</a></blockquote></div>`;
+  }
   const kv = parseKV(args);
   const src = kv.src || "";
   if (!src) return "";
@@ -521,6 +534,128 @@ function setupPlayer(box) {
 }
 
 /** Restore placeholders into final HTML after marked runs. */
+
+/** Current theme name ("" when unknown). */
+function themeNow() {
+  try { return document.documentElement.dataset.theme || ""; } catch (_) { return ""; }
+}
+
+/** Encode fence info flags so they survive marked: ```js bare color → ```js__bare__color */
+function encodeFenceFlags(md) {
+  const lines = md.split("\n");
+  let fence = null;
+  return lines.map((line) => {
+    const m = line.match(/^(`{3,}|~{3,})([^\n]*)$/);
+    if (!m) return line;
+    const run = m[1], info = m[2];
+    if (!fence) {
+      fence = run;
+      const im = info.match(/^\s*([^\s`]+)((?:\s+[^\s`]+)*)\s*$/);
+      if (im && im[2].trim()) return run + im[1] + "__" + im[2].trim().split(/\s+/).join("__");
+      return line;
+    }
+    if (run[0] === fence[0] && run.length >= fence.length) fence = null;
+    return line;
+  }).join("\n");
+}
+
+/** Paint +/- diff lines with spans (code is already HTML-escaped). */
+function paintDiff(code) {
+  return code.split("\n").map((line) => {
+    if (/^\+($|[^-])/.test(line)) return `<span class="df-add">${line || " "}</span>`;
+    if (/^-($|[^-])/.test(line)) return `<span class="df-del">${line || " "}</span>`;
+    if (/^@@/.test(line)) return `<span class="df-hunk">${line}</span>`;
+    return line;
+  }).join("\n");
+}
+
+/** Flag-aware code box. Flags: bare (no header, copy on click), color, mono, diff. */
+function renderCodebox(langToken, code) {
+  const parts = String(langToken || "text").split("__");
+  const lang = parts[0] || "text";
+  const flags = new Set(parts.slice(1).map((f) => f.toLowerCase()));
+  const isDiff = flags.has("diff") || lang === "diff" || lang === "patch";
+  let color = flags.has("color") || isDiff || themeNow() === "brutalism";
+  if (flags.has("mono")) color = false;
+  const bare = flags.has("bare");
+  let codeHtml = code;
+  if (isDiff && color) codeHtml = paintDiff(code);
+  const cls = "codebox" + (bare ? " codebox--bare" : "");
+  const colorAttr = color ? " data-codecolor" : "";
+  const bar = bare
+    ? `<button class="codebox__copy codebox__copy--float" type="button" data-copy aria-label="Copy code">COPY</button>`
+    : `<div class="codebox__bar"><span class="codebox__lang">${esc(lang.toUpperCase())}</span><button class="codebox__copy" type="button" data-copy>COPY</button></div>`;
+  const tab = bare ? ` tabindex="0"` : "";
+  return `<div class="${cls}"${colorAttr}${tab}>${bar}<pre><code class="language-${esc(lang)}">${codeHtml}</code></pre></div>`;
+}
+
+/** First fenced block inside a markdown fragment. */
+function extractFence(md) {
+  const m = String(md).match(/`{3,}([^\s`]*)[ \t]*\n([\s\S]*?)\n`{3,}/);
+  return m ? { lang: m[1] || "text", code: m[2] } : null;
+}
+
+/** :::codetabs blocks contain fenced code, so they must be pulled out
+    BEFORE outsideCode fragments the markdown on fence lines. */
+function extractCodeTabs(md) {
+  return md.replace(/^:::codetabs([^\n]*)\n([\s\S]*?)^:::$/gm, (_, args, body) =>
+    `\n@@BLOCK:codetabs:${b64e(args.trim())}:${b64e(body)}@@\n`);
+}
+
+/** Split a body into ## sections without breaking on ## inside fenced code. */
+function splitSections(body) {
+  const lines = String(body).split("\n");
+  const tabs = [];
+  let cur = null, fence = null;
+  for (const line of lines) {
+    const fm = line.match(/^(`{3,}|~{3,})/);
+    if (fm) {
+      const run = fm[1];
+      if (!fence) fence = run;
+      else if (run[0] === fence[0] && run.length >= fence.length) fence = null;
+    }
+    const hm = !fence && line.match(/^##\s+(.+)$/);
+    if (hm) { cur = { title: hm[1].trim(), lines: [] }; tabs.push(cur); continue; }
+    if (cur) cur.lines.push(line);
+  }
+  return tabs.map((t) => ({ title: t.title, body: t.lines.join("\n").trim() }));
+}
+
+/** :::codetabs — one fenced block per ## tab, rendered as a tabbed code box. */
+function renderCodeTabs(body) {
+  const tabs = splitSections(body);
+  if (!tabs.length) return renderInner(body);
+  const idp = "ct" + Math.random().toString(36).slice(2, 8);
+  const bar = tabs.map((t, i) =>
+    `<button class="ctabs__btn${i === 0 ? " is-active" : ""}" type="button" role="tab" aria-selected="${i === 0}" data-ctab="${idp}-${i}">${esc(t.title)}</button>`).join("");
+  const panels = tabs.map((t, i) => {
+    const f = extractFence(t.body);
+    const inner = f ? renderCodebox(f.lang + "__bare", esc(f.code)) : `<pre><code>${esc(t.body.trim())}</code></pre>`;
+    return `<div class="ctabs__panel${i === 0 ? " is-active" : ""}" id="${idp}-${i}" role="tabpanel">${inner}</div>`;
+  }).join("");
+  return `<div class="codetabs" data-ctabs><div class="ctabs__bar" role="tablist">${bar}</div>${panels}</div>`;
+}
+
+/** :::table — first line is the header, cells split on |. Optional |:---| alignment row. */
+function renderTable(args, body) {
+  const lines = body.split("\n").map((l) => l.trim()).filter((l) => l);
+  if (!lines.length) return "";
+  const cells = (l) => l.replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+  const head = cells(lines[0]);
+  let aligns = [], start = 1;
+  if (lines.length > 1 && cells(lines[1]).length && cells(lines[1]).every((c) => /^:?-+:?$/.test(c))) {
+    aligns = cells(lines[1]).map((c) =>
+      c.startsWith(":") && c.endsWith(":") && c.length > 2 ? "center" : c.endsWith(":") ? "right" : "left");
+    start = 2;
+  }
+  const alignAttr = (i) => (aligns[i] ? ` style="text-align:${aligns[i]}"` : "");
+  const thead = `<thead><tr>${head.map((c, i) => `<th${alignAttr(i)}>${renderInline(c)}</th>`).join("")}</tr></thead>`;
+  const tbody = `<tbody>${lines.slice(start).map((l) =>
+    `<tr>${cells(l).map((c, i) => `<td${alignAttr(i)}>${renderInline(c)}</td>`).join("")}</tr>`).join("")}</tbody>`;
+  const cap = args.trim() ? `<caption>${esc(args.trim())}</caption>` : "";
+  return `<figure class="dtable"><table>${cap}${thead}${tbody}</table></figure>`;
+}
+
 function postprocessHTML(html, ctx) {
   // footnote refs
   html = html.replace(/@@FNREF:([^:]+):(\d+)@@/g, (_, id, n) =>
@@ -557,6 +692,8 @@ function postprocessHTML(html, ctx) {
     if (kind === "pull") return `<aside class="pull">${renderInner(body)}</aside>`;
     if (kind === "timeline") return renderTimeline(body);
     if (kind === "tabs") return renderTabs(body);
+    if (kind === "codetabs") return renderCodeTabs(body);
+    if (kind === "table") return renderTable(args, body);
     if (kind === "collapse") return `<details class="collapse"><summary>${esc(args) || "DETAILS"}</summary><div class="collapse__body">${renderInner(body)}</div></details>`;
     if (kind === "box") return renderBox(args, body);
     if (kind === "stat") return renderStat(args, body);
@@ -568,8 +705,8 @@ function postprocessHTML(html, ctx) {
     if (kind === "section") return `<section class="dsection"><div class="dsection__title">${esc(args) || "SECTION"}</div><div class="dsection__body">${renderInner(body)}</div></section>`;
     return "";
   });
-  // embeds: youtube / video / audio / generic iframe
-  html = html.replace(/(?:<p>)?@@EMBED:(youtube|video|audio|embed):([A-Za-z0-9+/=]*)@@(?:<\/p>)?/g, (_, kind, b) =>
+  // embeds: youtube / video / audio / generic iframe / tweet / reddit
+  html = html.replace(/(?:<p>)?@@EMBED:(youtube|video|audio|embed|tweet|x|reddit):([A-Za-z0-9+/=]*)@@(?:<\/p>)?/g, (_, kind, b) =>
     renderEmbed(kind, decodeB64(b)));
   // inline directives: download / logo / img / stars
   html = html.replace(/(?:<p>)?@@DIRECTIVE:(download|logo|img|stars):([A-Za-z0-9+/=]*)@@(?:<\/p>)?/g, (_, kind, b) =>
@@ -584,11 +721,9 @@ function postprocessHTML(html, ctx) {
   // fancy divider
   html = html.replace(/(?:<p>)?@@DIVIDER@@(?:<\/p>)?/g,
     `<div class="divider" aria-hidden="true"><span>◆</span></div>`);
-  // code boxes: fenced blocks get a header with language + copy button
-  html = html.replace(/<pre><code class="language-([\w-]+)">([\s\S]*?)<\/code><\/pre>/g, (_, lang, code) =>
-    `<div class="codebox"><div class="codebox__bar"><span class="codebox__lang">${esc(lang.toUpperCase())}</span><button class="codebox__copy" type="button" data-copy>COPY</button></div><pre><code class="language-${esc(lang)}">${code}</code></pre></div>`);
-  html = html.replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/g, (_, code) =>
-    `<div class="codebox"><div class="codebox__bar"><span class="codebox__lang">TEXT</span><button class="codebox__copy" type="button" data-copy>COPY</button></div><pre><code>${code}</code></pre></div>`);
+  // code boxes: fenced blocks get a header with language + copy button (flags: bare/color/mono/diff)
+  html = html.replace(/<pre><code class="language-([\w-]+)">([\s\S]*?)<\/code><\/pre>/g, (_, tok, code) => renderCodebox(tok, code));
+  html = html.replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/g, (_, code) => renderCodebox("text", code));
   // task lists: this marked build emits plain checkboxes — tag the lists so the custom checklist CSS applies
   html = html.replace(/<ul>(?:(?!<ul>)[\s\S])*?<\/ul>/g, (m) =>
     /type="checkbox"/.test(m)
@@ -882,15 +1017,46 @@ function bindArticleInteractions(root) {
   });
   // custom video players
   root.querySelectorAll("[data-vplayer]").forEach(setupPlayer);
-  // syntax colors for code boxes (highlight.js, if loaded)
-  if (window.hljs) {
-    root.querySelectorAll(".codebox pre code[class^='language-']").forEach((el) => {
+  // syntax colors for code boxes (highlight.js, loaded lazily on first use)
+  const colorBlocks = [...root.querySelectorAll(".codebox[data-codecolor] pre code[class^='language-']")];
+  const paintColor = () => {
+    colorBlocks.forEach((el) => {
+      if (el.querySelector(".df-add, .df-del")) return; // diff already painted
       const m = el.className.match(/language-([\w-]+)/);
-      if (!m || m[1].toLowerCase() === "text") return;
-      if (!window.hljs.getLanguage(m[1])) return;
+      if (!m || !window.hljs || !window.hljs.getLanguage(m[1])) return;
       try { window.hljs.highlightElement(el); } catch (_) {}
     });
+  };
+  if (colorBlocks.length) {
+    if (window.hljs) paintColor();
+    else if (!document.querySelector("script[data-hljs]")) {
+      const s = document.createElement("script");
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js";
+      s.async = true; s.setAttribute("data-hljs", "1");
+      s.onload = paintColor;
+      document.head.appendChild(s);
+    } else {
+      const iv = setInterval(() => { if (window.hljs) { clearInterval(iv); paintColor(); } }, 400);
+      setTimeout(() => clearInterval(iv), 12000);
+    }
   }
+  // bare code boxes: reveal the copy button when the box is clicked
+  root.querySelectorAll(".codebox--bare").forEach((box) => {
+    box.addEventListener("click", () => box.classList.add("is-open"));
+  });
+  // social embeds: X/Twitter + Reddit official widgets, loaded lazily
+  const loadSocial = (selector, src, tag, onload) => {
+    if (!root.querySelector(selector)) return;
+    if (onload) { try { onload(); } catch (_) {} }
+    if (document.querySelector(`script[data-soc="${tag}"]`)) return;
+    const s = document.createElement("script");
+    s.src = src; s.async = true; s.setAttribute("data-soc", tag);
+    if (onload) s.onload = () => { try { onload(); } catch (_) {} };
+    document.head.appendChild(s);
+  };
+  loadSocial(".twitter-tweet", "https://platform.twitter.com/widgets.js", "tw",
+    () => window.twttr && window.twttr.widgets.load(root));
+  loadSocial(".reddit-embed-bq", "https://embed.reddit.com/widgets.js", "rd", null);
 }
 
 /* ───────── back-to-top button ───────── */

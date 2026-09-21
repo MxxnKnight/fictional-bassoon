@@ -40,6 +40,15 @@
   --ticker-ink: #faf9f7;
   --code-bg: rgb(18 18 18 / .06);
   --star: #b57a08;
+  --tok-kw: #6d28d9;
+  --tok-str: #047857;
+  --tok-num: #b45309;
+  --tok-com: rgb(18 18 18 / .45);
+  --tok-fn: #1d4ed8;
+  --df-add: #047857;
+  --df-add-bg: #dcfae7;
+  --df-del: #b91c1c;
+  --df-del-bg: #fee2e2;
   --radius: 10px;
 }
 
@@ -62,6 +71,15 @@
   --ticker-ink: #0f1115;
   --code-bg: rgb(232 230 225 / .08);
   --star: #e8a013;
+  --tok-kw: #c4b5fd;
+  --tok-str: #6ee7b7;
+  --tok-num: #fbbf24;
+  --tok-com: rgb(232 230 225 / .45);
+  --tok-fn: #93c5fd;
+  --df-add: #6ee7b7;
+  --df-add-bg: rgb(110 231 183 / .12);
+  --df-del: #fca5a5;
+  --df-del-bg: rgb(252 165 165 / .12);
   --hl: #e5ff00;
   --hl-red: #c04545;
   --hl-blue: #3f6fb5;
@@ -88,6 +106,15 @@
   --ticker-ink: #ffffff;
   --code-bg: #f0f0f0;
   --star: #000000;
+  --tok-kw: #0000ff;
+  --tok-str: #007a00;
+  --tok-num: #d00000;
+  --tok-com: rgb(0 0 0 / .5);
+  --tok-fn: #000000;
+  --df-add: #007a00;
+  --df-add-bg: #d9f2d9;
+  --df-del: #d00000;
+  --df-del-bg: #ffd9d9;
   --hl: #e5ff00;
   --hl-red: #ff0000;
   --hl-blue: #0000ff;
@@ -610,11 +637,49 @@ a { color: inherit; }
 .codebox pre { border: 0 !important; border-radius: 0 !important; margin: 0 !important; background: var(--paper-2); }
 
 /* ── syntax tokens — classified monochrome: ink only, no rainbow ── */
-.codebox [class*="hljs-"] { color: inherit; }
-.codebox .hljs-keyword, .codebox .hljs-built_in, .codebox .hljs-selector-tag { font-weight: 700; }
-.codebox .hljs-comment, .codebox .hljs-quote { color: var(--ink-faint); font-style: italic; }
-.codebox .hljs-emphasis { font-style: italic; }
-.codebox .hljs-strong { font-weight: 700; }
+/* monochrome default: neutralize any highlighter colors */
+.codebox:not([data-codecolor]) [class*="hljs-"] { color: inherit; }
+.codebox:not([data-codecolor]) .hljs-keyword, .codebox:not([data-codecolor]) .hljs-built_in, .codebox:not([data-codecolor]) .hljs-selector-tag { font-weight: 700; }
+.codebox:not([data-codecolor]) .hljs-comment, .codebox:not([data-codecolor]) .hljs-quote { color: var(--ink-faint); font-style: italic; }
+.codebox:not([data-codecolor]) .hljs-emphasis { font-style: italic; }
+.codebox:not([data-codecolor]) .hljs-strong { font-weight: 700; }
+/* color mode: on in brutalism, or per-block with the `color` flag */
+.codebox[data-codecolor] .hljs-keyword, .codebox[data-codecolor] .hljs-built_in, .codebox[data-codecolor] .hljs-selector-tag, .codebox[data-codecolor] .hljs-selector-id, .codebox[data-codecolor] .hljs-selector-class { color: var(--tok-kw); font-weight: 700; }
+.codebox[data-codecolor] .hljs-string, .codebox[data-codecolor] .hljs-regexp, .codebox[data-codecolor] .hljs-meta .hljs-string { color: var(--tok-str); }
+.codebox[data-codecolor] .hljs-number, .codebox[data-codecolor] .hljs-literal { color: var(--tok-num); }
+.codebox[data-codecolor] .hljs-comment, .codebox[data-codecolor] .hljs-quote { color: var(--tok-com); font-style: italic; }
+.codebox[data-codecolor] .hljs-title, .codebox[data-codecolor] .hljs-title.function_, .codebox[data-codecolor] .hljs-section { color: var(--tok-fn); font-weight: 700; }
+.codebox[data-codecolor] .hljs-attr, .codebox[data-codecolor] .hljs-attribute, .codebox[data-codecolor] .hljs-variable, .codebox[data-codecolor] .hljs-template-variable { color: var(--tok-kw); }
+.codebox[data-codecolor] .hljs-emphasis { font-style: italic; }
+.codebox[data-codecolor] .hljs-strong { font-weight: 700; }
+/* diff lines */
+.codebox .df-add { display: block; color: var(--df-add); background: var(--df-add-bg); font-weight: 600; }
+.codebox .df-del { display: block; color: var(--df-del); background: var(--df-del-bg); font-weight: 600; }
+.codebox .df-hunk { display: block; color: var(--tok-com); font-weight: 700; }
+/* bare code box: no header, copy button floats inside and appears on click/focus */
+.codebox--bare { position: relative; cursor: text; }
+.codebox--bare pre { padding-top: 14px; }
+.codebox__copy--float { position: absolute; top: 8px; right: 8px; z-index: 2; background: var(--ink); color: var(--paper); border: 1px solid var(--ink); border-radius: var(--radius); font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: .1em; padding: 6px 12px; min-height: 32px; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .15s; }
+.codebox--bare:focus-within .codebox__copy--float, .codebox--bare.is-open .codebox__copy--float { opacity: 1; pointer-events: auto; }
+/* tabbed code box: :::codetabs (reuses the ctabs tab logic) */
+.codetabs { margin: 1.6em 0; border: var(--border) var(--line-strong); border-radius: var(--radius); overflow: hidden; }
+.codetabs .ctabs__bar { display: flex; overflow-x: auto; background: var(--ink); border-bottom: var(--border) var(--line-strong); -webkit-overflow-scrolling: touch; }
+.codetabs .ctabs__btn { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .1em; padding: 12px 18px; min-height: var(--tap); background: transparent; color: var(--paper); border: 0; border-right: 1px solid rgb(128 128 128 / .35); cursor: pointer; white-space: nowrap; opacity: .65; }
+.codetabs .ctabs__btn.is-active { opacity: 1; background: var(--accent); color: var(--accent-ink); }
+.codetabs .ctabs__panel { display: none; }
+.codetabs .ctabs__panel.is-active { display: block; }
+.codetabs .codebox { margin: 0; border: 0; border-radius: 0; }
+/* social embeds: X/Twitter + Reddit */
+.embed { margin: 1.6em 0; border: var(--border) var(--line-strong); border-radius: var(--radius); background: var(--card); padding: 14px; min-height: 140px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.embed blockquote { margin: 0; border: 0; padding: 0; width: 100%; }
+.embed .twitter-tweet { margin: 0 auto !important; }
+/* directive tables: :::table */
+.dtable { margin: 1.6em 0; border: var(--border) var(--line-strong); border-radius: var(--radius); overflow-x: auto; background: var(--card); }
+.dtable table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.dtable caption { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; text-align: left; padding: 12px 14px; border-bottom: var(--border) var(--line-strong); background: var(--paper-2); }
+.dtable th { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; text-align: left; padding: 10px 14px; background: var(--ink); color: var(--paper); white-space: nowrap; }
+.dtable td { padding: 10px 14px; border-top: var(--border) var(--line); vertical-align: top; }
+.dtable tbody tr:nth-child(even) td { background: var(--paper-2); }
 
 /* ── dossier box ── */
 .dbox { border: 2px solid var(--line-strong); border-radius: var(--radius); margin: 1.6em 0; background: var(--paper-2); box-shadow: var(--shadow); }

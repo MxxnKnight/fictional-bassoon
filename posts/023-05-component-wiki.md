@@ -591,6 +591,56 @@ The claim that the grid failed twice is unsupported by the logs.
 
 `||the butler did it||` is the classic black bar. Add a tilde — `||~the gardener helped||` — and the text renders blurred instead. Both reveal on tap or click.
 
+## Code boxes: bare, flags, color, diff
+
+A fenced block takes flags after the language: `bare`, `color`, `mono`, `diff`.
+
+```js bare
+const quiet = true; // no header bar — tap inside the box and the COPY button appears
+```
+
+`color` forces syntax colors on (useful in light/dark, where boxes are monochrome by default). `mono` forces monochrome. Color is **on by default in brutalism**. The `diff` language (or flag) paints `+`/`-`/`@@` lines:
+
+```diff
++ added line
+- removed line
+ context line
+@@ hunk header @@
+```
+
+## Tabbed code: :::codetabs
+
+One fenced block per `##` tab — for install instructions in npm/yarn/pnpm, or the same snippet in several languages.
+
+:::codetabs
+## npm
+```bash
+npm install fictional-bassoon
+```
+## yarn
+```bash
+yarn add fictional-bassoon
+```
+## pnpm
+```bash
+pnpm add fictional-bassoon
+```
+:::
+
+## Social embeds
+
+`{% tweet "https://x.com/nasa/status/…" %}` (or `{% x … %}`) embeds a post from X/Twitter; `{% reddit "https://www.reddit.com/r/…/comments/…/" %}` embeds a Reddit thread. Both load the platform's official widget only when used, and fall back to a plain link if the widget is blocked.
+
+## Tables without pipes: :::table
+
+First line is the header, cells split on `|`, optional caption after `:::table`. An optional second row of `:---`, `:---:`, `---:` sets alignment.
+
+:::table Field kit
+Item | Weight | Packed
+Rope | 2 kg | Yes
+Lens | 800 g | No
+:::
+
 ## Cheat sheet
 
 | You want | You write |
@@ -629,3 +679,9 @@ The claim that the grid failed twice is unsupported by the logs.
 | TL;DR | `:::tldr` … `:::` |
 | Fact check | `:::factcheck TRUE\|FALSE\|MIXED` … `:::` |
 | Blur spoiler | `||~text||` (drop the tilde for the black bar) |
+| Bare code box | ` ```js bare ` — no header, COPY appears on tap inside |
+| Code flags | ` ```js color ` / ` ```js mono ` / ` ```diff ` |
+| Tabbed code | `:::codetabs` … `## npm` + fenced block … `:::` |
+| X/Twitter embed | `{% tweet "URL" %}` or `{% x "URL" %}` |
+| Reddit embed | `{% reddit "URL" %}` |
+| Directive table | `:::table Caption` … `A | B` rows … `:::` |
