@@ -533,25 +533,14 @@ a { color: inherit; }
 .codebox__lang { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: .16em; }
 .codebox__copy { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: .1em; background: transparent; color: inherit; border: 1px solid currentColor; border-radius: var(--radius); padding: 6px 12px; min-height: 32px; cursor: pointer; }
 .codebox__copy:hover { background: rgb(128 128 128 / .25); }
-.codebox pre { border: 0 !important; border-radius: 0 !important; margin: 0 !important; }
+.codebox pre { border: 0 !important; border-radius: 0 !important; margin: 0 !important; background: var(--paper-2); }
 
-/* ── syntax tokens (highlight.js) — theme aware ── */
-.codebox .hljs-keyword, .codebox .hljs-selector-tag, .codebox .hljs-built_in { color: #a31515; }
-.codebox .hljs-string, .codebox .hljs-regexp, .codebox .hljs-meta .hljs-string { color: #2a7a2a; }
+/* ── syntax tokens — classified monochrome: ink only, no rainbow ── */
+.codebox [class*="hljs-"] { color: inherit; }
+.codebox .hljs-keyword, .codebox .hljs-built_in, .codebox .hljs-selector-tag { font-weight: 700; }
 .codebox .hljs-comment, .codebox .hljs-quote { color: var(--ink-faint); font-style: italic; }
-.codebox .hljs-number, .codebox .hljs-literal { color: #8a5a00; }
-.codebox .hljs-title, .codebox .hljs-title.function_, .codebox .hljs-section { color: #1a4a9a; }
-.codebox .hljs-attr, .codebox .hljs-attribute, .codebox .hljs-variable, .codebox .hljs-template-variable { color: #6a1b9a; }
-.codebox .hljs-type, .codebox .hljs-class .hljs-title { color: #006d6d; }
-.codebox .hljs-operator, .codebox .hljs-punctuation, .codebox .hljs-subst { color: var(--ink-soft); }
 .codebox .hljs-emphasis { font-style: italic; }
 .codebox .hljs-strong { font-weight: 700; }
-[data-theme="dark"] .codebox .hljs-keyword, [data-theme="dark"] .codebox .hljs-selector-tag, [data-theme="dark"] .codebox .hljs-built_in { color: #ff7b72; }
-[data-theme="dark"] .codebox .hljs-string, [data-theme="dark"] .codebox .hljs-regexp, [data-theme="dark"] .codebox .hljs-meta .hljs-string { color: #7ee787; }
-[data-theme="dark"] .codebox .hljs-number, [data-theme="dark"] .codebox .hljs-literal { color: #e8a013; }
-[data-theme="dark"] .codebox .hljs-title, [data-theme="dark"] .codebox .hljs-title.function_, [data-theme="dark"] .codebox .hljs-section { color: #79c0ff; }
-[data-theme="dark"] .codebox .hljs-attr, [data-theme="dark"] .codebox .hljs-attribute, [data-theme="dark"] .codebox .hljs-variable, [data-theme="dark"] .codebox .hljs-template-variable { color: #d2a8ff; }
-[data-theme="dark"] .codebox .hljs-type, [data-theme="dark"] .codebox .hljs-class .hljs-title { color: #56d4dd; }
 
 /* ── dossier box ── */
 .dbox { border: 2px solid var(--line-strong); border-radius: var(--radius); margin: 1.6em 0; background: var(--paper-2); box-shadow: var(--shadow); }
