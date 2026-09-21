@@ -53,7 +53,7 @@ function applyTheme(name, save = true) {
   if (tl) tl.textContent = THEME_META[name].label;
   $("#themeBtn").setAttribute("aria-label", `Theme: ${name}. Activate to switch.`);
   const tag = $("#buildTag");
-  if (tag) tag.textContent = `BUILD: v024.5 // ${name.toUpperCase()} ACTIVE`;
+  if (tag) { const m = tag.textContent.match(/BUILD:\s*(v[\d.]+)/); tag.textContent = `BUILD: ${m ? m[1] : "?"} // ${name.toUpperCase()} ACTIVE`; }
   if (save) { try { localStorage.setItem("dossier-theme", name); } catch (_) {} }
 }
 /** v1 theme-switch glitch: shake the page + white flash. */
