@@ -51,7 +51,7 @@ function applyTheme(name, save = true) {
   $("#themeLabel").textContent = THEME_META[name].label;
   $("#themeBtn").setAttribute("aria-label", `Theme: ${name}. Activate to switch.`);
   const tag = $("#buildTag");
-  if (tag) tag.textContent = `BUILD: v023.7 // ${name.toUpperCase()} ACTIVE`;
+  if (tag) tag.textContent = `BUILD: v023.8 // ${name.toUpperCase()} ACTIVE`;
   if (save) { try { localStorage.setItem("dossier-theme", name); } catch (_) {} }
 }
 /** v1 theme-switch glitch: shake the page + white flash. */
