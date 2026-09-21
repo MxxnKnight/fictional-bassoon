@@ -152,8 +152,9 @@
 
 /* ── text highlight (marker pen) ── */
 .hl {
-  background: linear-gradient(transparent 46%, var(--hl, #ffe14d) 46%, var(--hl, #ffe14d) 96%, transparent 96%);
-  padding: 0 3px;
+  background: var(--hl, #ffe14d);
+  padding: 0.08em 0.3em;
+  border-radius: calc(var(--radius) * 0.35);
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
 }
