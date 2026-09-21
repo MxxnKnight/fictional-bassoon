@@ -988,3 +988,53 @@ figure.fig--left figcaption { text-align: left; }
   border: solid var(--accent-ink); border-width: 0 2.5px 2.5px 0;
   transform: rotate(42deg);
 }
+
+/* ══════════════════════════════════════════════════════════════
+   DESKTOP LAYOUT (≥1024px) — fill the canvas, no empty gutters
+   The mobile-first base above is untouched; this only re-grids
+   large screens: front page, hero, article + rail, press room.
+   ══════════════════════════════════════════════════════════════ */
+
+/* article grid: body + rail. Mobile stacks with the rail (TOC) first. */
+.dossier__grid { display: flex; flex-direction: column; min-width: 0; }
+.dossier__rail { order: -1; margin: 0 0 24px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.dossier__rail .dossier__toc { margin-bottom: 0; }
+
+/* file record card (article side rail) */
+.railcard { border: var(--border) var(--line-strong); border-radius: var(--radius); background: var(--paper-2); box-shadow: var(--shadow); overflow: hidden; }
+.railcard__head { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .18em; padding: 10px 14px; background: var(--ink); color: var(--paper); }
+.railcard__row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 14px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 11px; }
+.railcard__row > span { color: var(--ink-faint); letter-spacing: .12em; flex: none; }
+.railcard__row > b { font-weight: 700; letter-spacing: .04em; text-align: right; }
+.railcard__tags { padding: 10px 14px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px; }
+
+@media (min-width: 1024px) {
+  /* ── front page: full 1200px canvas ── */
+  .view--front { max-width: 1200px; }
+
+  /* hero: editorial spread — text left, image right */
+  .hero--featured { display: grid; grid-template-columns: 1.02fr .98fr; gap: 48px; align-items: center; padding: 32px 0 38px; }
+  .hero--featured .hero__img { margin-bottom: 0; }
+  .hero--featured .hero__title { font-size: clamp(40px, 4.6vw, 66px); }
+
+  /* the latest: two-column river, no dead space */
+  .newslist { display: grid; grid-template-columns: 1fr 1fr; column-gap: 52px; align-items: start; }
+  .newslist .empty { grid-column: 1 / -1; }
+
+  /* ── article: full-width header, body + sticky rail ── */
+  .dossier { max-width: 1180px; }
+  .dossier__grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 0 54px; align-items: start; }
+  .dossier__rail { order: 0; margin: 0; position: sticky; top: 84px; }
+  .dossier__body { font-size: 19px; max-width: 72ch; }
+  /* rail TOC: static open card on desktop, not a collapsible */
+  .dossier__rail .dossier__toc summary { pointer-events: none; cursor: default; }
+  .dossier__rail .dossier__toc summary::before { content: none; }
+  .dossier__rail .dossier__toc ol { max-height: 56vh; overflow: auto; }
+
+  /* ── press room: editor + preview side by side ── */
+  .pressroom { max-width: 1120px; }
+  .pressroom__studio { display: grid; grid-template-columns: 1fr 1fr; gap: 0 22px; align-items: start; }
+  .pressroom__title, .pressroom__studio > .publish__lede, .pressroom__tools, .pressroom__studio > .toolbox { grid-column: 1 / -1; }
+  .pressroom__input { min-height: 560px; }
+  .pressroom__live { margin-top: 0; }
+}

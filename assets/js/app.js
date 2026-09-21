@@ -909,10 +909,12 @@ function kickerHTML(type) {
 function heroHTML(p) {
   const img = p.image ? `<div class="hero__img"><img src="${esc(resolveImg(p.image))}" alt="" loading="lazy"></div>` : "";
   return `<a class="hero hero--featured" href="#/file/${p.id}">
+    <div class="hero__text">
     <div class="hero__kicker"><span class="kicker kicker--feat">◆ FEATURED ◆</span><span class="hero__fileno">FILE ${esc(p.fileNo)}</span></div>
     <h2 class="hero__title">${richInline(p.title)}</h2>
     <p class="hero__stand">${richInline(p.summary || "")}</p>
     <div class="hero__meta"><span>${esc(String(p.type || "FILE").toUpperCase())}</span><span>BY ${esc(p.author || "DOSSIER DESK")}</span><span>${esc(p.date || "")}</span><span class="hero__cta">READ THE FILE →</span></div>
+    </div>
     ${img}
   </a>`;
 }
@@ -972,10 +974,10 @@ function datelineInit() {
 }
 
 /* ───────── dossier view ───────── */
-function tocHTML(headings) {
+function tocHTML(headings, open) {
   if (!headings.length) return "";
   const items = headings.map((h) => `<li><a href="#${h.id}">${esc(h.text)}</a></li>`).join("");
-  return `<details class="dossier__toc"><summary>CONTENTS — ${headings.length} SECTIONS</summary><ol>${items}</ol></details>`;
+  return `<details class="dossier__toc"${open ? " open" : ""}><summary>CONTENTS — ${headings.length} SECTIONS</summary><ol>${items}</ol></details>`;
 }
 
 async function renderFile(id) {
@@ -996,6 +998,7 @@ async function renderFile(id) {
     const tags = (meta.tags && meta.tags.length ? meta.tags : post.tags || [])
       .map((t) => `<span class="tag">#${esc(String(t))}</span>`).join(" ");
     const mins = Math.max(1, Math.round(src.split(/\s+/).filter(Boolean).length / 200));
+    const railOpen = window.matchMedia("(min-width: 1024px)").matches;
     article.innerHTML = `
       ${meta.dateline ? `<span class="dateline">${esc(meta.dateline)}</span>` : ""}
       <div class="dossier__kicker">
@@ -1005,8 +1008,20 @@ async function renderFile(id) {
       <h1 class="dossier__title">${richInline(meta.title || post.title)}</h1>
       ${meta.standfirst ? `<p class="dossier__standfirst">${richInline(meta.standfirst)}</p>` : ""}
       <div class="dossier__byline"><span>BY ${esc(byline)}</span>${date ? `<span>// ${esc(date)}</span>` : ""}<span>// ${mins} MIN READ</span><span>// ${tags}</span></div>
-      ${tocHTML(headings)}
-      <div class="dossier__body">${html}</div>`;
+      <div class="dossier__grid">
+        <div class="dossier__body">${html}</div>
+        <aside class="dossier__rail" aria-label="Contents and file record">
+          ${tocHTML(headings, railOpen)}
+          <div class="railcard">
+            <div class="railcard__head">FILE RECORD</div>
+            <div class="railcard__row"><span>FILE</span><b>// ${esc(post.fileNo)}</b></div>
+            <div class="railcard__row"><span>TYPE</span><b>${esc(String(type).toUpperCase())}</b></div>
+            ${date ? `<div class="railcard__row"><span>DATE</span><b>${esc(date)}</b></div>` : ""}
+            <div class="railcard__row"><span>READ</span><b>${mins} MIN</b></div>
+            ${tags ? `<div class="railcard__tags">${tags}</div>` : ""}
+          </div>
+        </aside>
+      </div>`;
     bindArticleInteractions(article);
     window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
   } catch (e) {
