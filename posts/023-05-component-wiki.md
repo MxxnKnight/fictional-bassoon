@@ -631,7 +631,7 @@ The claim that the grid failed twice is unsupported by the logs.
 
 ## Code boxes: editor chrome, flags, diff
 
-Every fenced block renders as an editor-style code box — dark surface, JetBrains Mono, and a popular syntax palette — identical in light, dark, and brutalism. The header shows the language (or a filename), with a collapse chevron and a copy button inside.
+Every fenced block renders as an editor-style code box — JetBrains Mono and a popular syntax palette that follows the theme: a dark editor surface in dark mode, a light paper surface with a light-gray outline in light and brutalism. The header shows the language (or a filename), with a collapse chevron and a copy button inside.
 
 Add `file=name.ext` after the language to show a filename in the header, like an IDE tab:
 
