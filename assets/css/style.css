@@ -99,6 +99,20 @@
   --radius: 10px;
 }
 
+/* dark mode: inverted accents use dark blue-gray, never white */
+[data-theme="dark"] {
+  --ticker-bg: #232733;
+  --ticker-ink: #e8e6e1;
+}
+[data-theme="dark"] .back-btn,
+[data-theme="dark"] .chip--verified,
+[data-theme="dark"] .railcard__head,
+[data-theme="dark"] .has-tip::after {
+  background: #232733;
+  color: #e8e6e1;
+  border-color: #4b5263;
+}
+
 /* ── BRUTALISM ── */
 [data-theme="brutalism"] {
   --paper: #ffffff;
@@ -555,6 +569,9 @@ a { color: inherit; }
 .sealed.unsealed .sealed__cover { display: none; }
 .sealed__label { font-size: 11px; font-weight: 600; letter-spacing: .16em; border: 1.5px solid #fff; padding: 8px 14px; }
 .sealed__reason { font-size: 12px; opacity: .85; max-width: 40ch; line-height: 1.6; }
+/* sealed image wrapper: caption sits below the clipped box, never overlapping */
+.sealedwrap { margin: 1.6em 0; }
+.sealedwrap > .sealed { margin: 0; }
 
 /* footnotes */
 .footnotes { border-top: 2px solid var(--line-strong); margin-top: 2.5em; padding-top: 1em; font-size: 15px; }

@@ -191,11 +191,18 @@ function preprocessComponents(md) {
     });
     // ==redacted== → placeholder
     chunk = chunk.replace(/==([^=\n]+?)==/g, (_, t) => `@@REDACTED:${b64e(t)}@@`);
-    // :::kind args ... :::  directive blocks (memo, pull, timeline, tabs, collapse, box, section, stat, person, movie)
-    chunk = chunk.replace(/^:::(\w+)([^\n]*)\n([\s\S]*?)^:::$/gm, (_, kind, args, body) => {
-      if (!BLOCK_KINDS.has(kind.toLowerCase())) return _;
-      return `\n@@BLOCK:${kind.toLowerCase()}:${b64e(args.trim())}:${b64e(body)}@@\n`;
-    });
+    // :::kind args ... :::  directive blocks (memo, pull, timeline, tabs, collapse, box, section, stat, person, movie).
+    // Blocks nest: replace innermost-first (bodies containing no nested opener), looping until stable,
+    // so e.g. a :::table can live inside a :::box or :::tabs.
+    const blockRe = /^:::(\w+)([^\n]*)\n((?:(?!^:::)[\s\S])*?)^:::$/gm;
+    let prevChunk;
+    do {
+      prevChunk = chunk;
+      chunk = chunk.replace(blockRe, (_, kind, args, body) => {
+        if (!BLOCK_KINDS.has(kind.toLowerCase())) return _;
+        return `\n@@BLOCK:${kind.toLowerCase()}:${b64e(args.trim())}:${b64e(body)}@@\n`;
+      });
+    } while (chunk !== prevChunk);
     // {% youtube|video|audio|embed|tweet|x|reddit ... %} embeds
     chunk = chunk.replace(/\{%\s*(youtube|video|audio|embed|tweet|x|reddit)\s+([^%]*?)%\}/g, (_, kind, args) =>
       `@@EMBED:${kind}:${b64e(args.trim())}@@`);
@@ -845,10 +852,17 @@ function buildRenderer() {
     if (!/^(https?:|data:|\/)/i.test(src)) src = POSTS_BASE + src;
     const alt = esc(text || "");
     if (title && /^spoiler\s*:/i.test(title)) {
-      const reason = esc(title.replace(/^spoiler\s*:\s*/i, ""));
-      return `<figure class="sealed" data-sealed><img src="${esc(src)}" alt="${alt}" loading="lazy">` +
+      // optional align: ![alt](img.jpg "spoiler: reason | align: center")
+      let rest = title.replace(/^spoiler\s*:\s*/i, "");
+      let align = "";
+      const am = rest.match(/\|\s*align\s*:\s*(left|center|right)\s*$/i);
+      if (am) { align = am[1].toLowerCase(); rest = rest.slice(0, am.index).trim(); }
+      const reason = esc(rest);
+      const acls = align ? ` fig--${align}` : "";
+      // figcaption lives OUTSIDE the overflow-hidden .sealed box so it never overlaps the image
+      return `<figure class="sealedwrap${acls}"><div class="sealed" data-sealed><img src="${esc(src)}" alt="${alt}" loading="lazy">` +
         `<button class="sealed__cover" type="button"><span class="sealed__label">SPOILER — TAP TO REVEAL</span>` +
-        (reason ? `<span class="sealed__reason">${reason}</span>` : "") + `</button>` +
+        (reason ? `<span class="sealed__reason">${reason}</span>` : "") + `</button></div>` +
         (alt ? `<figcaption>${alt}</figcaption>` : "") + `</figure>`;
     }
     // image filters: ![alt](img.jpg "filter: grayscale(1) contrast(1.1) | optional caption")
@@ -1043,7 +1057,9 @@ function bindArticleInteractions(root) {
     const btn = fig.querySelector(".sealed__cover");
     if (btn) btn.addEventListener("click", () => fig.classList.add("unsealed"));
   });
-  // tooltips: tap the info icon (or the text) to open on touch screens
+  // tooltips: tap the info icon (or the text) to open on touch screens.
+  // closes on outside tap/click, on hover-out (desktop), or Escape.
+  const HOVERABLE = window.matchMedia("(hover: hover)").matches;
   root.querySelectorAll(".has-tip").forEach((el) => {
     el.addEventListener("click", (e) => {
       e.preventDefault();
@@ -1051,7 +1067,15 @@ function bindArticleInteractions(root) {
       root.querySelectorAll(".has-tip.show-tip").forEach((o) => o.classList.remove("show-tip"));
       if (!was) el.classList.add("show-tip");
     });
+    if (HOVERABLE) el.addEventListener("mouseleave", () => el.classList.remove("show-tip"));
   });
+  if (!bindArticleInteractions._tipCloser) {
+    bindArticleInteractions._tipCloser = true;
+    const closeAllTips = () => document.querySelectorAll(".has-tip.show-tip")
+      .forEach((o) => o.classList.remove("show-tip"));
+    document.addEventListener("click", (e) => { if (!e.target.closest(".has-tip")) closeAllTips(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeAllTips(); });
+  }
   // codebox copy buttons (icon buttons inside the header)
   root.querySelectorAll("[data-copy]").forEach((btn) => {
     btn.addEventListener("click", async () => {

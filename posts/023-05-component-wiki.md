@@ -53,10 +53,12 @@ Any CSS filter works: `blur(2px)`, `invert(1)`, `saturate(2)`, chained combos.
 
 ## Spoiler images
 
-Put `spoiler:` first in the title and the image stays blurred behind a **SPOILER** cover until tapped.
+Put `spoiler:` first in the title and the image stays blurred behind a **SPOILER** cover until tapped. Add `| align: center` (or `left` / `right`) to align the image and caption. The caption sits below the image, never overlapping it.
 
 ```text
 ![Raid photograph](https://picsum.photos/seed/dossier9/880/460 "spoiler: Graphic content — tap to reveal")
+
+![Raid photograph](https://picsum.photos/seed/dossier9/880/460 "spoiler: Graphic content | align: center")
 ```
 
 **Live:**
@@ -166,6 +168,30 @@ Names in this section are unverified. Hold for legal.
 A quiet box for asides. No shadow, no noise.
 :::
 
+## Nested blocks
+
+`:::` blocks nest — put a table inside a box, a box inside a collapse, a chart inside tabs. Inner blocks are rendered first, then the outer wrapper.
+
+```text
+:::box Evidence locker
+:::table Seized items
+Item | Qty
+Cables | 40
+Drives | 12
+:::
+:::
+```
+
+**Live:**
+
+:::box Evidence locker
+:::table Seized items
+Item | Qty
+Cables | 40
+Drives | 12
+:::
+:::
+
 ## Stat callout
 
 A big-number callout for the figures that matter. First line is the number, the rest is the label. Optional kinds: `red`, `ghost`.
@@ -213,6 +239,8 @@ Plain markdown tables scroll horizontally on phones — no squished columns.
 |---|---|---|
 | Mumbai — Panvel | 6 | unlicensed |
 | Goa — Mangaluru | 13 | unlicensed |
+
+**Inline components in cells:** spoilers (`||redacted||`), badges (`:badge[]`), highlights (`:hl[]`), and tooltips all work inside table cells — they are encoded before the table splits rows on `|`. Block-level `:::` components cannot go in a cell, but they *can* wrap or contain tables — see **Nested blocks** below.
 
 ## Multi-tab tables
 
@@ -421,6 +449,8 @@ Hover over [this briefing](tooltip: Compiled from three independent sources, cro
 **Live:**
 
 Hover over [this briefing](tooltip: Compiled from three independent sources, cross-checked.) to see the tip. On phones, tap the ⓘ icon.
+
+A open tip closes when you tap/click anywhere outside it, move the pointer off it (desktop), or press Escape.
 
 **Pinning a file:** add `pinned: true` to a file's frontmatter and it stays above the top story with a pin badge. **Front-page images:** `image: raid.jpg` in frontmatter (a bare filename is read from `/posts`) puts a thumbnail on the news row and a banner on the hero. **Title highlights:** `:hl[]` (and `:hl-red[]` etc.) work inside titles and summaries on the front page.
 
