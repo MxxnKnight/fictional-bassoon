@@ -203,8 +203,8 @@ function preprocessComponents(md) {
         return `\n@@BLOCK:${kind.toLowerCase()}:${b64e(args.trim())}:${b64e(body)}@@\n`;
       });
     } while (chunk !== prevChunk);
-    // {% youtube|video|audio|embed|tweet|x|reddit ... %} embeds
-    chunk = chunk.replace(/\{%\s*(youtube|video|audio|embed|tweet|x|reddit)\s+([^%]*?)%\}/g, (_, kind, args) =>
+    // {% youtube|video|audio|embed|tweet|x|reddit|instagram|ig ... %} embeds
+    chunk = chunk.replace(/\{%\s*(youtube|video|audio|embed|tweet|x|reddit|instagram|ig)\s+([^%]*?)%\}/g, (_, kind, args) =>
       `@@EMBED:${kind}:${b64e(args.trim())}@@`);
     // {% download|logo|img|stars ... %} inline directives
     chunk = chunk.replace(/\{%\s*(download|logo|img|stars)\s+([^%]*?)%\}/g, (_, kind, args) =>
@@ -394,6 +394,11 @@ function renderEmbed(kind, args) {
     const url = args.split(/\s+/)[0].replace(/^["'<]|["'>]$/g, "");
     if (!/^https?:\/\/(www\.|old\.|new\.)?reddit\.com\//.test(url)) return "";
     return `<div class="embed embed--reddit"><blockquote class="reddit-embed-bq" data-embed-height="480"><a href="${esc(url)}">View this thread on Reddit</a></blockquote></div>`;
+  }
+  if (kind === "instagram" || kind === "ig") {
+    const url = args.split(/\s+/)[0].replace(/^["'<]|["'>]$/g, "");
+    if (!/^https?:\/\/(www\.)?instagram\.com\/(p|reel|reels|tv)\/[A-Za-z0-9_-]+\/?/.test(url)) return "";
+    return `<div class="embed embed--instagram"><blockquote class="instagram-media" data-instgrm-permalink="${esc(url)}" data-instgrm-version="14"><a href="${esc(url)}">View this post on Instagram</a></blockquote></div>`;
   }
   const kv = parseKV(args);
   const src = kv.src || "";
@@ -763,8 +768,8 @@ function postprocessHTML(html, ctx) {
     if (kind === "section") return `<section class="dsection"><div class="dsection__title">${esc(args) || "SECTION"}</div><div class="dsection__body">${renderInner(body)}</div></section>`;
     return "";
   });
-  // embeds: youtube / video / audio / generic iframe / tweet / reddit
-  html = html.replace(/(?:<p>)?@@EMBED:(youtube|video|audio|embed|tweet|x|reddit):([A-Za-z0-9+/=]*)@@(?:<\/p>)?/g, (_, kind, b) =>
+  // embeds: youtube / video / audio / generic iframe / tweet / reddit / instagram
+  html = html.replace(/(?:<p>)?@@EMBED:(youtube|video|audio|embed|tweet|x|reddit|instagram|ig):([A-Za-z0-9+/=]*)@@(?:<\/p>)?/g, (_, kind, b) =>
     renderEmbed(kind, decodeB64(b)));
   // inline directives: download / logo / img / stars
   html = html.replace(/(?:<p>)?@@DIRECTIVE:(download|logo|img|stars):([A-Za-z0-9+/=]*)@@(?:<\/p>)?/g, (_, kind, b) =>
@@ -1179,19 +1184,28 @@ function bindArticleInteractions(root) {
       setTimeout(() => clearInterval(iv), 12000);
     }
   }
-  // social embeds: X/Twitter + Reddit official widgets, loaded lazily
+  // social embeds: X/Twitter + Reddit + Instagram official widgets, loaded lazily.
+  // The widget scripts scan the page once when they load, so on hash-route article
+  // changes we re-run each platform's converter for newly rendered blockquotes.
+  // Reddit's script exposes no re-process API, so it is re-injected instead —
+  // converted embeds are already iframes, so only fresh blockquotes get picked up.
   const loadSocial = (selector, src, tag, onload) => {
     if (!root.querySelector(selector)) return;
-    if (onload) { try { onload(); } catch (_) {} }
-    if (document.querySelector(`script[data-soc="${tag}"]`)) return;
+    const existing = document.querySelector(`script[data-soc="${tag}"]`);
+    if (existing) {
+      if (tag === "rd") existing.remove(); // force reddit's widgets.js to re-scan
+      else { if (onload) { try { onload(); } catch (_) {} } return; }
+    }
     const s = document.createElement("script");
     s.src = src; s.async = true; s.setAttribute("data-soc", tag);
     if (onload) s.onload = () => { try { onload(); } catch (_) {} };
     document.head.appendChild(s);
   };
   loadSocial(".twitter-tweet", "https://platform.twitter.com/widgets.js", "tw",
-    () => window.twttr && window.twttr.widgets.load(root));
+    () => { if (window.twttr) window.twttr.widgets.load(); });
   loadSocial(".reddit-embed-bq", "https://embed.reddit.com/widgets.js", "rd", null);
+  loadSocial(".instagram-media", "https://www.instagram.com/embed.js", "ig",
+    () => { if (window.instgrm) window.instgrm.Embeds.process(); });
 }
 
 /* ───────── back-to-top button ───────── */
@@ -1249,7 +1263,7 @@ const PRESS_SNIPPETS = [
     ["Video", "{% video \"▮\" %}"], ["Audio", "{% audio \"▮\" %}"],
     ["YouTube", "{% youtube \"▮\" %}"], ["Embed", "{% embed \"▮\" %}"],
     ["Download", "{% download \"▮\" %}"], ["Tweet", "{% tweet \"▮\" %}"],
-    ["Reddit", "{% reddit \"▮\" %}"], ["Logo", "{% logo \"▮\" 120 %}"],
+    ["Reddit", "{% reddit \"▮\" %}"], ["Instagram", "{% instagram \"▮\" %}"], ["Logo", "{% logo \"▮\" 120 %}"],
     ["Stars", ":stars[▮]"],
   ]},
   { g: "CARDS", items: [

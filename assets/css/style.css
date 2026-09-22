@@ -707,10 +707,11 @@ a { color: inherit; }
 .codetabs .ctabs__panel { display: none; }
 .codetabs .ctabs__panel.is-active { display: block; }
 .codetabs .codebox { margin: 0; border: 0; border-radius: 0; background: transparent; }
-/* social embeds: X/Twitter + Reddit */
+/* social embeds: X/Twitter + Reddit + Instagram */
 .embed { margin: 1.6em 0; border: var(--border) var(--line-strong); border-radius: var(--radius); background: var(--card); padding: 14px; min-height: 140px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .embed blockquote { margin: 0; border: 0; padding: 0; width: 100%; }
 .embed .twitter-tweet { margin: 0 auto !important; }
+.embed .instagram-media { margin: 0 auto !important; min-width: 0 !important; }
 /* directive tables: :::table */
 .dtable { margin: 1.6em 0; border: var(--border) var(--line-strong); border-radius: var(--radius); overflow-x: auto; background: var(--card); }
 .dtable table { width: 100%; border-collapse: collapse; font-size: 14px; }

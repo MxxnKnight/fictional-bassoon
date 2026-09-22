@@ -707,7 +707,15 @@ pnpm add fictional-bassoon
 
 ## Social embeds
 
-`{% tweet "https://x.com/nasa/status/…" %}` (or `{% x … %}`) embeds a post from X/Twitter; `{% reddit "https://www.reddit.com/r/…/comments/…/" %}` embeds a Reddit thread. Both load the platform's official widget only when used, and fall back to a plain link if the widget is blocked.
+`{% tweet "https://x.com/nasa/status/…" %}` (or `{% x … %}`) embeds a post from X/Twitter; `{% reddit "https://www.reddit.com/r/…/comments/…/" %}` embeds a Reddit thread; `{% instagram "https://www.instagram.com/p/…/" %}` (or `{% ig … %}`) embeds an Instagram post, reel (`/reel/…`), or TV video (`/tv/…`). All three load the platform's official widget only when used, and fall back to a plain link if the widget is blocked.
+
+Live, with real links:
+
+{% tweet "https://twitter.com/NASA/status/1805796751577633136" %}
+
+{% reddit "https://www.reddit.com/r/singularity/comments/1t73lym/anthropic_to_reach_100_global_gdp_in_21_months/" %}
+
+{% instagram "https://www.instagram.com/p/By39v5mHx0S/" %}
 
 ## Tables without pipes: :::table
 
@@ -764,4 +772,5 @@ Lens | 800 g | No
 | Tabbed code | `:::codetabs` … `## npm` + fenced block … `:::` |
 | X/Twitter embed | `{% tweet "URL" %}` or `{% x "URL" %}` |
 | Reddit embed | `{% reddit "URL" %}` |
+| Instagram embed | `{% instagram "URL" %}` or `{% ig "URL" %}` |
 | Directive table | `:::table Caption` … `A | B` rows … `:::` |
