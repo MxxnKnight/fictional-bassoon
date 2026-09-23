@@ -516,30 +516,40 @@ The film scores :stars[3] from the desk.
 
 ## Person cards
 
-An ID card: the first image becomes the portrait, the rest is info. Add `round` for a circular portrait.
+A vertical ID card: portrait on top, name header, then metadata rows going top to bottom. The first image becomes the portrait, the first text line becomes the name header, `Key: Value` lines become metadata rows, and `---` drops in a divider. Add `dividers` to divide every row, `round` for a circular portrait. Anything else becomes the bio.
 
 ```text
-:::person round
+:::person dividers
 ![Ava Cross](ava.jpg)
 **Ava Cross** — Field agent
-Cleared for level 4. Speaks Malayalam, Hindi, English.
+Role: Field operative
+Clearance: Level 4
+---
+Languages: Malayalam, Hindi, English
+Station: Kochi
+Ava has run field ops across Kerala since 2019.
 :::
 ```
 
 **Live:**
 
-:::person round
-![Ava Cross](ava.jpg)
+:::person dividers
+![Ava Cross](https://picsum.photos/seed/avacross/600/600)
 **Ava Cross** — Field agent
-Cleared for level 4. Speaks Malayalam, Hindi, English.
+Role: Field operative
+Clearance: Level 4
+---
+Languages: Malayalam, Hindi, English
+Station: Kochi
+Ava has run field ops across Kerala since 2019.
 :::
 
-## Movie infobox
+## Movie metadata box
 
-Wikipedia/IMDb style. First image is the poster, the first text line is the title, `Key: Value` lines become fact rows, and anything else becomes the synopsis.
+`:::movie` (or `:::moviebox`) — the metadata file card. First image is the poster, the first text line is the title, `Key: Value` lines become fact rows, and anything else becomes the synopsis.
 
 ```text
-:::movie
+:::moviebox
 ![Poster](poster.jpg)
 Drishyam
 Director: Jeethu Joseph
@@ -552,7 +562,7 @@ A gripping thriller about a man who will do anything to protect his family.
 
 **Live:**
 
-:::movie
+:::moviebox
 ![Poster](poster.jpg)
 Drishyam
 Director: Jeethu Joseph
@@ -560,6 +570,42 @@ Year: 2013
 Box office: $677747
 Rating: :stars[4.5]
 A gripping thriller about a man who will do anything to protect his family.
+:::
+
+## Movie showcase card
+
+`:::moviecard` — the "new movie introduces" card. Poster on the left, everything else on the right: title and year, content-rating tag, genre chips, IMDb / TMDB / Rotten Tomatoes scores with custom logos, summary, optional cast, and a watch-trailer button. Write it as `Key: Value` lines — only include the fields you need.
+
+```text
+:::moviecard
+poster: https://image.tmdb.org/t/p/w500/kDp1vUBnMpe8ak4rjgl3cLELqjU.jpg
+title: Manjummel Boys
+year: 2024
+cert: U
+genres: Survival, Thriller, Drama
+imdb: 8.2
+tmdb: 7.7
+rotten: 97%
+summary: A group of friends from Kochi gets into a daring rescue mission to save one of their own from the Guna Caves — a perilously deep pit nobody has ever been brought back from. Based on a true story.
+cast: Soubin Shahir, Sreenath Bhasi, Balu Varghese, Jean Paul Lal
+trailer: https://www.youtube.com/watch?v=id848Ww1YLo
+:::
+```
+
+**Live:**
+
+:::moviecard
+poster: https://image.tmdb.org/t/p/w500/kDp1vUBnMpe8ak4rjgl3cLELqjU.jpg
+title: Manjummel Boys
+year: 2024
+cert: U
+genres: Survival, Thriller, Drama
+imdb: 8.2
+tmdb: 7.7
+rotten: 97%
+summary: A group of friends from Kochi gets into a daring rescue mission to save one of their own from the Guna Caves — a perilously deep pit nobody has ever been brought back from. Based on a true story.
+cast: Soubin Shahir, Sreenath Bhasi, Balu Varghese, Jean Paul Lal
+trailer: https://www.youtube.com/watch?v=id848Ww1YLo
 :::
 
 ## Diagrams
@@ -659,6 +705,29 @@ The claim that the grid failed twice is unsupported by the logs.
 
 `||the butler did it||` is the classic black bar. Add a tilde — `||~the gardener helped||` — and the text renders blurred instead. Both reveal on tap or click.
 
+**Live — tap to reveal:**
+
+||the butler did it||
+
+||~the gardener helped~||
+
+## Malayalam type
+
+Malayalam just works — the site loads Noto Sans Malayalam and it kicks in automatically wherever Malayalam script appears, in every theme. No markup needed.
+
+**Live:**
+
+## പ്രധാന വാർത്ത
+
+മലയാളം കേരളത്തിന്റെ മാതൃഭാഷയാണ്. ഇത് മനോഹരമായ ഒരു ഭാഷയാണ്.
+
+> സത്യം എപ്പോഴും വിജയിക്കും
+
+- കൊച്ചി — റിപ്പോർട്ട്
+- തിരുവനന്തപുരം — അപ്ഡേറ്റ്
+
+Mixed script works too: the dossier **ഫയൽ** is now open.
+
 ## Code boxes: editor chrome, flags, diff
 
 Every fenced block renders as an editor-style code box — JetBrains Mono and a popular syntax palette that follows the theme: a dark editor surface in dark mode, a light paper surface with a light-gray outline in light and brutalism. The header shows the language (or a filename), with a collapse chevron and a copy button inside.
@@ -754,8 +823,9 @@ Lens | 800 g | No
 | Button | `[Label](button[:red\|:ghost]:url)` |
 | Download | `{% download "file.pdf" "Label" %}` |
 | Stars | `{% stars 4.5 %}` or `:stars[4.5]` |
-| Person card | `:::person [round]` … `:::` |
-| Movie infobox | `:::movie` — poster, title, `Key: Value` rows … `:::` |
+| Person card | `:::person [round] [dividers]` — portrait, name, `Key: Value` rows, `---` dividers … `:::` |
+| Movie metadata box | `:::movie` / `:::moviebox` — poster, title, `Key: Value` rows … `:::` |
+| Movie showcase card | `:::moviecard` — poster, cert, genres, IMDb/TMDB/RT scores, cast, trailer … `:::` |
 | Diagram | ` ```mermaid ` flowchart / sequence … ` ``` ` |
 | Logo | `{% logo "wire.png" "WIRE" 48 %}` |
 | Aligned image | `{% img "photo.jpg" "Caption" center %}` |

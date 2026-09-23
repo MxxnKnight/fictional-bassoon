@@ -138,7 +138,7 @@ function decodeB64(s) {
   } catch (_) { return ""; }
 }
 
-const BLOCK_KINDS = new Set(["memo", "pull", "timeline", "tabs", "codetabs", "collapse", "box", "section", "stat", "person", "movie", "bar", "pie", "table", "editor", "correction", "update", "tldr", "factcheck"]);
+const BLOCK_KINDS = new Set(["memo", "pull", "timeline", "tabs", "codetabs", "collapse", "box", "section", "stat", "person", "movie", "moviebox", "moviecard", "bar", "pie", "table", "editor", "correction", "update", "tldr", "factcheck"]);
 
 /** Apply fn only to text outside fenced code blocks, so examples stay literal.
     Closing fence must be at least as long as the opening fence (CommonMark). */
@@ -229,6 +229,17 @@ function preprocessComponents(md) {
 }
 
 /** Render a markdown fragment (nested component bodies). Headings stay out of the TOC. */
+/** Full article pipeline for the press-room preview: same as renderMarkdown
+    (frontmatter stripped, footnotes resolved) so the preview matches the
+    published article exactly. */
+function renderPreviewMD(src) {
+  const { body } = parseFrontmatter(src);
+  const { md, defs, order } = extractFootnotes(body);
+  const { renderer } = buildRenderer();
+  marked.setOptions({ renderer, breaks: false, gfm: true });
+  return postprocessHTML(marked.parse(preprocessComponents(md)), { footnotes: { defs, order } });
+}
+
 function renderInner(md) {
   if (!md || !md.trim()) return "";
   const { renderer } = buildRenderer();
@@ -460,22 +471,49 @@ function renderDirective(kind, args) {
   return "";
 }
 
-/** :::person / :::movie — ID card: first markdown image becomes the portrait, the rest is info. */
+/** :::person — vertical ID card: portrait on top, name header, then metadata.
+    First markdown image = portrait. First text line = name header.
+    "Key: Value" lines = metadata rows. "---" = divider line.
+    Add `dividers` to draw dividers between all rows, `round` for a circular portrait.
+    Anything else = bio paragraphs. */
 function renderIdCard(kind, args, body) {
   const round = /\bround\b/i.test(args);
+  const dividers = /\bdividers\b/i.test(args);
   let imgHTML = "";
   const m = body.match(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/);
   let rest = body;
   if (m) {
     let src = m[2];
     if (!/^(https?:|data:|\/)/i.test(src)) src = POSTS_BASE + src;
-    imgHTML = `<img class="id-card__img${round ? " is-round" : ""}" src="${esc(src)}" alt="${esc(m[1])}" loading="lazy">`;
+    imgHTML = `<div class="id-card__photo"><img class="id-card__img${round ? " is-round" : ""}" src="${esc(src)}" alt="${esc(m[1])}" loading="lazy"></div>`;
     rest = body.replace(m[0], "");
   }
-  return `<div class="id-card id-card--${kind}">${imgHTML}<div class="id-card__body">${renderInner(rest.trim())}</div></div>`;
+  const lines = rest.split("\n").map((l) => l.trim());
+  let i = 0;
+  while (i < lines.length && !lines[i]) i++;
+  const header = i < lines.length ? lines[i++] : "";
+  const rows = [], bio = [];
+  for (; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line) continue;
+    if (/^---+$/.test(line)) { rows.push({ div: true }); continue; }
+    const fm = line.match(/^([^:*\n]{1,40}):\s+(.+)$/);
+    if (fm) rows.push({ k: fm[1].trim(), v: fm[2].trim() });
+    else bio.push(line);
+  }
+  const rowsHtml = rows.length
+    ? `<dl class="id-card__facts">${rows.map((r) =>
+        r.div ? `<div class="id-card__div" role="separator"></div>`
+        : `<div class="id-card__fact${dividers ? " id-card__fact--div" : ""}"><dt>${esc(r.k)}</dt><dd>${renderInline(r.v)}</dd></div>`
+      ).join("")}</dl>`
+    : "";
+  const bioHtml = bio.length ? `<div class="id-card__bio">${renderInner(bio.join("\n\n"))}</div>` : "";
+  return `<div class="id-card id-card--${kind}">${imgHTML}<div class="id-card__body">` +
+    (header ? `<div class="id-card__name">${renderInline(header)}</div>` : "") +
+    rowsHtml + bioHtml + `</div></div>`;
 }
 
-/** :::movie — Wikipedia/IMDb-style infobox.
+/** :::movie (alias :::moviebox) — metadata file card for a film.
     First image = poster. First text line = title.
     "Key: Value" lines = fact rows. Anything else = synopsis. */
 function renderMovie(args, body) {
@@ -484,7 +522,7 @@ function renderMovie(args, body) {
   if (m) {
     let src = m[2];
     if (!/^(https?:|data:|\/)/i.test(src)) src = POSTS_BASE + src;
-    poster = `<img class="movie__poster" src="${esc(src)}" alt="${esc(m[1])}" loading="lazy">`;
+    poster = `<figure class="movie__posterwrap"><img class="movie__poster" src="${esc(src)}" alt="${esc(m[1])}" loading="lazy"></figure>`;
     rest = body.replace(m[0], "");
   }
   const lines = rest.split("\n").map((l) => l.trim());
@@ -504,9 +542,64 @@ function renderMovie(args, body) {
         `<div class="movie__fact"><dt>${esc(f.k)}</dt><dd>${renderInline(f.v)}</dd></div>`).join("")}</dl>`
     : "";
   const synHtml = syn.length ? `<div class="movie__syn">${renderInner(syn.join("\n\n"))}</div>` : "";
-  return `<aside class="movie"><div class="movie__kicker">${kicker}</div>` +
+  return `<aside class="movie"><div class="movie__head"><span class="movie__kicker">${kicker}</span></div>` +
     `<div class="movie__title">${renderInline(title) || "UNTITLED"}</div>` +
-    `<div class="movie__grid">${poster}<div class="movie__body">${factsHtml}${synHtml}</div></div></aside>`;
+    (poster || factsHtml ? `<div class="movie__grid">${poster}${factsHtml}</div>` : "") +
+    synHtml + `</aside>`;
+}
+
+/** Custom rating-logo marks (stylised, drawn inline — no external assets). */
+const LOGO_IMDB = `<svg class="rlogo" viewBox="0 0 48 24" aria-hidden="true"><rect width="48" height="24" rx="4" fill="#F5C518"/><text x="24" y="17" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="13" fill="#000">IMDb</text></svg>`;
+const LOGO_TMDB = `<svg class="rlogo" viewBox="0 0 48 24" aria-hidden="true"><defs><linearGradient id="tmdbg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#90cea1"/><stop offset="1" stop-color="#01b4e4"/></linearGradient></defs><rect width="48" height="24" rx="4" fill="url(#tmdbg)"/><text x="24" y="17" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="11" fill="#fff" letter-spacing="1">TMDB</text></svg>`;
+const LOGO_RT = `<svg class="rlogo" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="16" r="10" fill="#fa320a"/><ellipse cx="14" cy="5.5" rx="4.5" ry="2.4" fill="#2e7d32"/><rect x="13" y="2.5" width="2" height="5" rx="1" fill="#2e7d32"/></svg>`;
+
+/** :::moviecard — showcase card for a new movie: poster, title/year, content-rating
+    tag, genre chips, IMDb/TMDB/Rotten-Tomatoes scores with custom logos,
+    summary, optional cast, optional trailer button.
+    Key: Value lines (case-insensitive): poster, title, year, cert, genres,
+    imdb, tmdb, rotten, summary, cast, trailer. */
+function renderMovieCard(args, body) {
+  const fields = {};
+  body.split("\n").forEach((line) => {
+    const m = line.match(/^\s*([A-Za-z]+)\s*:\s*(.+?)\s*$/);
+    if (m) fields[m[1].toLowerCase()] = m[2];
+  });
+  const resolvePoster = (s) => {
+    s = String(s || "").trim();
+    if (!s) return "";
+    return /^(https?:|data:|\/)/i.test(s) ? s : POSTS_BASE + s;
+  };
+  const posterSrc = resolvePoster(fields.poster);
+  const poster = posterSrc
+    ? `<div class="mcard__poster"><img src="${esc(posterSrc)}" alt="${esc(fields.title || "Movie poster")}" loading="lazy"></div>`
+    : "";
+  const cert = fields.cert ? `<span class="mcard__cert">${esc(fields.cert)}</span>` : "";
+  const genres = fields.genres
+    ? `<div class="mcard__genres">${fields.genres.split(",").map((g) => g.trim()).filter(Boolean).map((g) => `<span class="mcard__genre">${esc(g)}</span>`).join("")}</div>`
+    : "";
+  const ratings = [
+    fields.imdb ? { logo: LOGO_IMDB, name: "IMDb", val: fields.imdb } : null,
+    fields.tmdb ? { logo: LOGO_TMDB, name: "TMDB", val: fields.tmdb } : null,
+    fields.rotten ? { logo: LOGO_RT, name: "Rotten Tomatoes", val: fields.rotten } : null,
+  ].filter(Boolean);
+  const ratingsHtml = ratings.length
+    ? `<div class="mcard__ratings">${ratings.map((r) =>
+        `<div class="mcard__rating" title="${esc(r.name)}">${r.logo}<b>${esc(r.val)}</b><span>${esc(r.name === "Rotten Tomatoes" ? "Rotten Tomatoes" : r.name)}</span></div>`).join("")}</div>`
+    : "";
+  const summary = fields.summary ? `<p class="mcard__summary">${renderInline(fields.summary)}</p>` : "";
+  const cast = fields.cast
+    ? `<div class="mcard__cast"><span>STARRING</span>${esc(fields.cast)}</div>`
+    : "";
+  const trailer = fields.trailer
+    ? `<a class="mcard__trailer" href="${esc(fields.trailer)}" target="_blank" rel="noopener">▶ WATCH TRAILER</a>`
+    : "";
+  const kicker = esc(args.trim()) || "NOW SHOWING";
+  return `<aside class="mcard">${poster}<div class="mcard__body">` +
+    `<div class="mcard__kicker">${kicker}</div>` +
+    `<div class="mcard__title">${renderInline(fields.title || "UNTITLED")}${fields.year ? ` <span class="mcard__year">(${esc(fields.year)})</span>` : ""}</div>` +
+    (cert || genres ? `<div class="mcard__tags">${cert}${genres}</div>` : "") +
+    ratingsHtml + summary + cast + trailer +
+    `</div></aside>`;
 }
 
 /** Mermaid diagram block: ```mermaid fences render as diagrams, not code. */
@@ -764,7 +857,8 @@ function postprocessHTML(html, ctx) {
     if (kind === "editor" || kind === "correction" || kind === "update" || kind === "tldr") return renderNotice(kind, args, body);
     if (kind === "factcheck") return renderFactcheck(args, body);
     if (kind === "person") return renderIdCard(kind, args, body);
-    if (kind === "movie") return renderMovie(args, body);
+    if (kind === "movie" || kind === "moviebox") return renderMovie(args, body);
+    if (kind === "moviecard") return renderMovieCard(args, body);
     if (kind === "section") return `<section class="dsection"><div class="dsection__title">${esc(args) || "SECTION"}</div><div class="dsection__body">${renderInner(body)}</div></section>`;
     return "";
   });
@@ -1267,8 +1361,9 @@ const PRESS_SNIPPETS = [
     ["Stars", ":stars[▮]"],
   ]},
   { g: "CARDS", items: [
-    ["Person", ":::person\n![Name▮](photo.jpg)\n**Name** — Role\n:::"],
-    ["Movie", ":::movie\n![Poster](poster.jpg)\nTitle▮\nDirector: \nYear: \nBox office: $\n:::"],
+    ["Person", ":::person dividers\n![Name▮](photo.jpg)\n**Name** — Role\nRole: Field agent\nClearance: Level 4\n---\nLanguages: Malayalam, Hindi, English\nBio line here.\n:::"],
+    ["Movie", ":::movie\n![Poster](poster.jpg)\nTitle▮\nDirector: \nYear: \nBox office: $\nA gripping synopsis line.\n:::"],
+    ["Movie card", ":::moviecard\nposter: poster.jpg\ntitle: ▮\nyear: 2024\ncert: U/A 13+\ngenres: Drama, Thriller\nimdb: 8.5\ntmdb: 8.2\nrotten: 94%\nsummary: \ncast: \ntrailer: https://www.youtube.com/watch?v=\n:::"],
   ]},
 ];
 function pressInsert(ta, tpl, rerender) {
@@ -1293,7 +1388,7 @@ function initPressRoom() {
   let pTimer = null;
   const renderPreview = () => {
     if (!input || !previewBody) return;
-    previewBody.innerHTML = renderInner(input.value) || `<p class="empty">NOTHING TO PREVIEW YET.</p>`;
+    previewBody.innerHTML = renderPreviewMD(input.value) || `<p class="empty">NOTHING TO PREVIEW YET.</p>`;
     bindArticleInteractions(previewBody);
   };
   const queuePreview = () => { clearTimeout(pTimer); pTimer = setTimeout(renderPreview, 250); };

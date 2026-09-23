@@ -861,36 +861,79 @@ a { color: inherit; }
 
 /* ── person / movie ID cards ── */
 .id-card {
-  display: flex; gap: 18px; align-items: flex-start;
   border: var(--border) var(--line-strong); border-radius: var(--radius);
-  background: var(--paper-2); padding: 18px; margin: 1.6em 0;
-  box-shadow: var(--shadow);
+  background: var(--paper-2); margin: 1.6em 0; overflow: hidden;
+  box-shadow: var(--shadow); max-width: 420px;
 }
-.id-card__img { width: 78px; height: 78px; object-fit: cover; flex: none; border: var(--border) var(--line-strong); border-radius: var(--radius); }
-.id-card__img.is-round { border-radius: 50%; }
-.id-card__body { min-width: 0; flex: 1; font-size: 16px; }
+.id-card__photo { background: var(--ink); line-height: 0; }
+.id-card__img { width: 100%; height: 240px; object-fit: cover; display: block; }
+.id-card__img.is-round { width: 150px; height: 150px; border-radius: 50%; margin: 22px auto 0; border: 3px solid var(--line-strong); }
+.id-card__body { padding: 16px 18px 18px; font-size: 16px; }
 .id-card__body > *:first-child { margin-top: 0; }
 .id-card__body > *:last-child { margin-bottom: 0; }
-.id-card__body > p:first-child { font-family: var(--serif); font-size: 21px; line-height: 1.35; }
+.id-card__name { font-family: var(--serif); font-size: 24px; line-height: 1.25; margin-bottom: 10px; }
+.id-card__facts { margin: 0 0 4px; }
+.id-card__fact { display: grid; grid-template-columns: 110px 1fr; gap: 10px; padding: 7px 0; font-size: 14px; }
+.id-card__fact dt { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); padding-top: 2px; }
+.id-card__fact dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.id-card__fact--div { border-bottom: 1px solid var(--line); }
+.id-card__fact--div:last-child { border-bottom: 0; }
+.id-card__div { border: 0; border-top: 1px dashed var(--line-strong); margin: 8px 0; }
+.id-card__bio { font-size: 15px; margin-top: 10px; color: var(--ink-soft); }
+.id-card__bio > *:last-child { margin-bottom: 0; }
 [data-theme="brutalism"] .id-card { border-width: 3px; box-shadow: 8px 8px 0 #000; }
 
-/* movie infobox: :::movie — Wikipedia/IMDb-style poster + fact rows */
-.movie { margin: 1.6em 0; border: var(--border) var(--line-strong); border-radius: var(--radius); background: var(--card); overflow: hidden; }
-.movie__kicker { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .16em; padding: 10px 16px 0; color: var(--ink-soft); }
-.movie__title { font-family: var(--serif); font-size: 26px; line-height: 1.25; padding: 4px 16px 12px; border-bottom: var(--border) var(--line-strong); }
-.movie__grid { display: grid; grid-template-columns: 180px 1fr; gap: 0; }
-.movie__poster { width: 100%; height: 100%; min-height: 240px; object-fit: cover; border-right: var(--border) var(--line-strong); display: block; }
-.movie__body { padding: 6px 16px 14px; min-width: 0; }
-.movie__facts { margin: 0; }
-.movie__fact { display: grid; grid-template-columns: 110px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+/* movie metadata box: :::movie / :::moviebox — file-card look */
+.movie { margin: 1.6em 0; border: var(--border) var(--line-strong); border-radius: var(--radius); background: var(--card); overflow: hidden; box-shadow: var(--shadow); }
+.movie__head { background: var(--ink); color: var(--paper); padding: 8px 16px; }
+.movie__kicker { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .16em; }
+.movie__title { font-family: var(--serif); font-size: 28px; line-height: 1.2; padding: 12px 16px; border-bottom: var(--border) var(--line-strong); }
+.movie__grid { display: grid; grid-template-columns: 190px 1fr; gap: 0; }
+.movie__posterwrap { margin: 0; line-height: 0; border-right: var(--border) var(--line-strong); background: var(--paper-2); }
+.movie__poster { width: 100%; height: 100%; min-height: 250px; max-height: 340px; object-fit: cover; display: block; }
+.movie__facts { margin: 0; padding: 4px 16px 8px; min-width: 0; }
+.movie__fact { display: grid; grid-template-columns: 120px 1fr; gap: 10px; padding: 9px 0; border-bottom: 1px dotted var(--line); font-size: 14px; }
 .movie__fact:last-child { border-bottom: 0; }
 .movie__fact dt { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); padding-top: 2px; }
 .movie__fact dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
-.movie__syn { font-size: 15px; margin-top: 10px; }
+.movie__syn { font-size: 15px; padding: 12px 16px 16px; border-top: var(--border) var(--line-strong); background: var(--paper-2); }
+.movie__syn > *:first-child { margin-top: 0; }
 .movie__syn > *:last-child { margin-bottom: 0; }
+[data-theme="brutalism"] .movie { border-width: 3px; box-shadow: 8px 8px 0 #000; }
 @media (max-width: 560px) {
   .movie__grid { grid-template-columns: 1fr; }
-  .movie__poster { border-right: 0; border-bottom: var(--border) var(--line-strong); max-height: 300px; min-height: 0; }
+  .movie__posterwrap { border-right: 0; border-bottom: var(--border) var(--line-strong); }
+  .movie__poster { max-height: 300px; }
+}
+
+/* movie showcase card: :::moviecard — poster + ratings + trailer */
+.mcard { margin: 1.6em 0; border: var(--border) var(--line-strong); border-radius: var(--radius); background: var(--card); overflow: hidden; box-shadow: var(--shadow); display: grid; grid-template-columns: 220px 1fr; }
+.mcard__poster { line-height: 0; background: var(--ink); min-height: 100%; }
+.mcard__poster img { width: 100%; height: 100%; min-height: 320px; object-fit: cover; display: block; }
+.mcard__body { padding: 18px 20px 20px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.mcard__body > *:first-child { margin-top: 0; }
+.mcard__kicker { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .16em; color: var(--ink-soft); }
+.mcard__title { font-family: var(--serif); font-size: clamp(24px, 4vw, 34px); line-height: 1.15; }
+.mcard__year { font-size: .65em; color: var(--ink-soft); font-family: var(--body-serif); }
+.mcard__tags { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.mcard__cert { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .06em; border: 2px solid var(--ink); border-radius: 3px; padding: 3px 8px; }
+.mcard__genres { display: contents; }
+.mcard__genre { font-family: var(--mono); font-size: 11px; letter-spacing: .04em; background: var(--paper-2); border: var(--border) var(--line); border-radius: 20px; padding: 4px 12px; color: var(--ink-soft); }
+.mcard__ratings { display: flex; flex-wrap: wrap; gap: 10px; }
+.mcard__rating { display: flex; align-items: center; gap: 8px; background: var(--paper-2); border: var(--border) var(--line); border-radius: var(--radius); padding: 8px 12px; }
+.mcard__rating .rlogo { width: 44px; height: 22px; flex: none; }
+.mcard__rating b { font-size: 18px; font-variant-numeric: tabular-nums; }
+.mcard__rating span { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); }
+.mcard__summary { font-size: 15px; line-height: 1.65; margin: 0; }
+.mcard__cast { font-size: 13px; color: var(--ink-soft); }
+.mcard__cast span { display: block; font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .14em; margin-bottom: 4px; color: var(--ink-faint); }
+.mcard__trailer { align-self: flex-start; font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .1em; background: var(--ink); color: var(--paper); text-decoration: none; padding: 12px 20px; border-radius: var(--radius); margin-top: 2px; }
+.mcard__trailer:hover { opacity: .85; }
+[data-theme="brutalism"] .mcard { border-width: 3px; box-shadow: 8px 8px 0 #000; }
+[data-theme="brutalism"] .mcard__trailer { box-shadow: 4px 4px 0 #000; }
+@media (max-width: 560px) {
+  .mcard { grid-template-columns: 1fr; }
+  .mcard__poster img { min-height: 0; max-height: 380px; }
 }
 [data-theme="brutalism"] .movie { border-width: 3px; box-shadow: 8px 8px 0 #000; }
 
