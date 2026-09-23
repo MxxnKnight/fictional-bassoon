@@ -703,7 +703,7 @@ a { color: inherit; }
 .codetabs .ctabs__bar { display: flex; gap: 2px; overflow-x: auto; background: var(--codebox-bar); border-bottom: 1px solid var(--codebox-line); padding: 6px 10px 0; -webkit-overflow-scrolling: touch; }
 .codetabs .ctabs__btn { font-family: var(--mono); font-size: 12.5px; font-weight: 500; letter-spacing: .02em; padding: 10px 14px; min-height: var(--tap); background: transparent; color: var(--codebox-muted); border: 0; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; }
 .codetabs .ctabs__btn:hover { color: var(--codebox-ink); }
-.codetabs .ctabs__btn.is-active { color: var(--tok-fn); border-bottom-color: var(--tok-fn); }
+.codetabs .ctabs__btn.is-active { color: var(--tok-fn); border-bottom-color: var(--tok-fn); background: transparent; }
 .codetabs .ctabs__panel { display: none; }
 .codetabs .ctabs__panel.is-active { display: block; }
 .codetabs .codebox { margin: 0; border: 0; border-radius: 0; background: transparent; }
@@ -1010,14 +1010,25 @@ figure.fig--left figcaption { text-align: left; }
 [data-theme="brutalism"] .btn-press { border-width: 3px; box-shadow: 4px 4px 0 #000; }
 
 /* ── custom lists: square bullets, dossier numbering ── */
-.dossier__body ul:not(.contains-task-list):not(.timeline) { list-style: none; padding-left: 0; }
-.dossier__body ul:not(.contains-task-list):not(.timeline) > li { position: relative; padding-left: 24px; }
-.dossier__body ul:not(.contains-task-list):not(.timeline) > li::before {
+.dossier__body ul:not(.contains-task-list):not(.timeline):not(.rlist) { list-style: none; padding-left: 0; }
+.dossier__body ul:not(.contains-task-list):not(.timeline):not(.rlist) > li { position: relative; padding-left: 24px; }
+.dossier__body ul:not(.contains-task-list):not(.timeline):not(.rlist) > li::before {
   content: ""; position: absolute; left: 4px; top: .68em;
   width: 7px; height: 7px; background: var(--accent); border: 1px solid var(--line-strong);
 }
-.dossier__body ul:not(.contains-task-list):not(.timeline) ul > li { padding-left: 20px; }
-.dossier__body ul:not(.contains-task-list):not(.timeline) ul > li::before { width: 5px; height: 5px; background: transparent; top: .72em; }
+.dossier__body ul:not(.contains-task-list):not(.timeline):not(.rlist) ul > li { padding-left: 20px; }
+.dossier__body ul:not(.contains-task-list):not(.timeline):not(.rlist) ul > li::before { width: 5px; height: 5px; background: transparent; top: .72em; }
+
+/* ── round list: :::roundlist ── */
+.dossier__body ul.rlist { list-style: none; padding-left: 0; }
+.dossier__body ul.rlist > li { position: relative; padding-left: 24px; margin-bottom: .55em; }
+.dossier__body ul.rlist > li::before {
+  content: ""; position: absolute; left: 4px; top: .68em;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent); border: 1px solid var(--line-strong);
+}
+.dossier__body ul.rlist ul > li { padding-left: 20px; }
+.dossier__body ul.rlist ul > li::before { width: 5px; height: 5px; background: transparent; top: .72em; }
 
 .dossier__body ol:not(.timeline) { list-style: none; padding-left: 0; counter-reset: dlist; }
 .dossier__body ol:not(.timeline) > li { counter-increment: dlist; position: relative; padding-left: 48px; }
@@ -1033,21 +1044,20 @@ figure.fig--left figcaption { text-align: left; }
 .dossier__body .footnotes ol > li { padding-left: 0; }
 .dossier__body .footnotes ol > li::before { content: none; }
 
-/* ── custom checklists ── */
+/* ── custom checklists: round, radio-style ── */
 .dossier__body ul.contains-task-list { list-style: none; padding-left: .2em; }
 .dossier__body li.task-list-item { list-style: none; position: relative; padding-left: 36px; margin-bottom: .7em; }
 .dossier__body .task-list-item > input[type="checkbox"] {
   position: absolute; left: 0; top: 4px; width: 20px; height: 20px; margin: 0;
   appearance: none; -webkit-appearance: none;
-  border: 2px solid var(--line-strong); border-radius: var(--radius);
-  background: var(--paper-2); cursor: default;
+  border: 2px solid var(--line-strong); border-radius: 50%;
+  background: transparent; cursor: default;
 }
-.dossier__body .task-list-item > input[type="checkbox"]:checked { background: var(--accent); }
+.dossier__body .task-list-item > input[type="checkbox"]:checked { border-color: var(--accent); }
 .dossier__body .task-list-item > input[type="checkbox"]:checked::after {
-  content: ""; position: absolute; left: 5.5px; top: 1.5px;
-  width: 5px; height: 10px;
-  border: solid var(--accent-ink); border-width: 0 2.5px 2.5px 0;
-  transform: rotate(42deg);
+  content: ""; position: absolute; left: 4px; top: 4px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent);
 }
 
 /* ══════════════════════════════════════════════════════════════

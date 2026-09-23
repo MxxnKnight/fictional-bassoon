@@ -138,7 +138,7 @@ function decodeB64(s) {
   } catch (_) { return ""; }
 }
 
-const BLOCK_KINDS = new Set(["memo", "pull", "timeline", "tabs", "codetabs", "collapse", "box", "section", "stat", "person", "movie", "moviebox", "moviecard", "bar", "pie", "table", "editor", "correction", "update", "tldr", "factcheck"]);
+const BLOCK_KINDS = new Set(["memo", "pull", "timeline", "tabs", "codetabs", "collapse", "box", "roundlist", "section", "stat", "person", "movie", "moviebox", "moviecard", "bar", "pie", "table", "editor", "correction", "update", "tldr", "factcheck"]);
 
 /** Apply fn only to text outside fenced code blocks, so examples stay literal.
     Closing fence must be at least as long as the opening fence (CommonMark). */
@@ -301,6 +301,14 @@ function renderTabs(body) {
   const panels = tabs.map((t, i) =>
     `<div class="ctabs__panel${i === 0 ? " is-active" : ""}" id="${idp}-${i}" role="tabpanel">${renderInner(t.body)}</div>`).join("");
   return `<div class="ctabs" data-ctabs><div class="ctabs__bar" role="tablist">${bar}</div>${panels}</div>`;
+}
+
+/** :::roundlist — bullet list with round markers instead of the square dossier default. */
+function renderRoundList(body) {
+  const inner = renderInner(body).trim();
+  const m = inner.match(/^<ul>([\s\S]*)<\/ul>$/);
+  const items = m ? m[1] : `<li>${inner}</li>`;
+  return `<ul class="rlist">${items}</ul>`;
 }
 
 function renderBox(args, body) {
@@ -862,6 +870,7 @@ function postprocessHTML(html, ctx) {
     if (kind === "table") return renderTable(args, body);
     if (kind === "collapse") return `<details class="collapse"><summary><span>${esc(args) || "DETAILS"}</span>${SVG_CHEV}</summary><div class="collapse__body">${renderInner(body)}</div></details>`;
     if (kind === "box") return renderBox(args, body);
+    if (kind === "roundlist") return renderRoundList(body);
     if (kind === "stat") return renderStat(args, body);
     if (kind === "bar") return renderBarChart(args, body);
     if (kind === "pie") return renderPieChart(args, body);
@@ -1337,7 +1346,7 @@ const PRESS_SNIPPETS = [
     ["H1", "\n# ▮\n"], ["H2", "\n## ▮\n"], ["H3", "\n### ▮\n"],
     ["B", "**{{sel}}▮**"], ["I", "*{{sel}}▮*"], ["S", "~~{{sel}}▮~~"],
     ["Link", "[{{sel}}▮](https://)"], ["Image", "![alt▮](image.jpg)"],
-    ["Quote", "\n> ▮\n"], ["List", "\n- ▮\n- \n"], ["Tasks", "\n- [ ] ▮\n- [ ] \n"],
+    ["Quote", "\n> ▮\n"], ["List", "\n- ▮\n- \n"], ["Round list", "\n:::roundlist\n- ▮\n- \n:::\n"], ["Tasks", "\n- [ ] ▮\n- [ ] \n"],
     ["Kbd", ":kbd[▮]"], ["Badge", ":badge[▮]"], ["Tag", ":tag[▮]"], ["HR", "\n***\n"],
   ]},
   { g: "HIDE", items: [

@@ -320,6 +320,28 @@ One `:::tabs` block, one `##` heading per tab. Each tab holds anything — table
 - [ ] Redact the names
 - [ ] Push to board
 
+Checklists render round and radio-style: an empty circle when open, a filled inner dot when done.
+
+## Round list
+
+Square bullets are the dossier default. `:::roundlist` swaps them for round ones:
+
+```text
+:::roundlist
+- Signal intercepts
+- Dead-drop rotations
+- Safe-house inventory
+:::
+```
+
+**Live:**
+
+:::roundlist
+- Signal intercepts
+- Dead-drop rotations
+- Safe-house inventory
+:::
+
 ## Numbered sections
 
 `:::section` blocks auto-number themselves: SEC. 01, SEC. 02…
@@ -812,6 +834,7 @@ Lens | 800 g | No
 | Stat callout | `:::stat [red\|ghost]` … number … label … `:::` |
 | Tabbed tables | `:::tabs` … `## Tab` … `:::` |
 | Checklist | `- [ ]` / `- [x]` |
+| Round list | `:::roundlist` … `- item` … `:::` |
 | Section | `:::section Title` … `:::` |
 | Collapse | `:::collapse Title` … `:::` |
 | Divider | `---` or `***` |
