@@ -859,7 +859,7 @@ Lens | 800 g | No
 | Update | `:::update` … `:::` |
 | TL;DR | `:::tldr` … `:::` |
 | Fact check | `:::factcheck TRUE\|FALSE\|MIXED` … `:::` |
-| Blur spoiler | `||~text||` (drop the tilde for the black bar) |
+| Blur spoiler | `\|\|~text\|\|` (drop the tilde for the black bar) |
 | Bare code box | ` ```js bare ` — no header, copy appears on tap inside |
 | Code flags | ` ```js color ` / ` ```js mono ` / ` ```diff ` |
 | Tabbed code | `:::codetabs` … `## npm` + fenced block … `:::` |
