@@ -534,7 +534,7 @@ Ava has run field ops across Kerala since 2019.
 **Live:**
 
 :::person dividers
-![Ava Cross](https://picsum.photos/seed/avacross/600/600)
+![Ava Cross](https://i.pravatar.cc/600?img=47)
 **Ava Cross** — Field agent
 Role: Field operative
 Clearance: Level 4
@@ -578,7 +578,7 @@ A gripping thriller about a man who will do anything to protect his family.
 
 ```text
 :::moviecard
-poster: https://image.tmdb.org/t/p/w500/kDp1vUBnMpe8ak4rjgl3cLELqjU.jpg
+poster: https://image.tmdb.org/t/p/w500/s5HBKH7hNo8EElJTFQPEDwYgXhG.jpg
 title: Manjummel Boys
 year: 2024
 cert: U
@@ -595,7 +595,7 @@ trailer: https://www.youtube.com/watch?v=id848Ww1YLo
 **Live:**
 
 :::moviecard
-poster: https://image.tmdb.org/t/p/w500/kDp1vUBnMpe8ak4rjgl3cLELqjU.jpg
+poster: https://image.tmdb.org/t/p/w500/s5HBKH7hNo8EElJTFQPEDwYgXhG.jpg
 title: Manjummel Boys
 year: 2024
 cert: U

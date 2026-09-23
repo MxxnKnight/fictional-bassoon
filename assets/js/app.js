@@ -247,6 +247,17 @@ function renderInner(md) {
   return postprocessHTML(marked.parse(preprocessComponents(md)), { footnotes: { defs: new Map(), order: [] } });
 }
 
+/** Inline-safe inner markdown for use inside <span> elements (spoilers).
+    renderInner() wraps plain text in <p>…</p>, and a <p> inside a <span> is
+    invalid HTML — real browsers reparent it, leaving the span empty and the
+    text exposed as a sibling. Unwrap single/multiple paragraphs instead. */
+function renderInlineInner(md) {
+  return renderInner(md).trim()
+    .replace(/<\/p>\s*<p>/g, "<br><br>")
+    .replace(/^<p>/, "")
+    .replace(/<\/p>$/, "");
+}
+
 /** key="value" pairs plus an optional bare first token (used as src). */
 function parseKV(s) {
   const kv = {};
@@ -817,7 +828,7 @@ function postprocessHTML(html, ctx) {
     `<a class="footnote-ref" id="fnref-${esc(id)}" href="#fn-${esc(id)}" aria-label="Footnote ${n}">[${n}]</a>`);
   // spoilers — inner content gets a full markdown render so bold, links, highlights work inside
   html = html.replace(/@@SPOILER:([01]):([A-Za-z0-9+/=]+)@@/g, (_, f, b) =>
-    `<span class="spoiler${f === "1" ? " spoiler--blur" : ""}" tabindex="0" role="button" aria-label="Spoiler, activate to reveal">${renderInner(decodeB64(b))}</span>`);
+    `<span class="spoiler${f === "1" ? " spoiler--blur" : ""}" tabindex="0" role="button" aria-label="Spoiler, activate to reveal">${renderInlineInner(decodeB64(b))}</span>`);
   // redactions
   html = html.replace(/@@REDACTED:([A-Za-z0-9+/=]+)@@/g, (_, b) =>
     `<span class="redacted" aria-label="Redacted">${esc(decodeB64(b))}</span>`);
